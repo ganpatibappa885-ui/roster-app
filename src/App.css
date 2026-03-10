@@ -1144,6 +1144,7 @@ body {
 .team-card-add .add-form { display: flex; gap: var(--space-3); flex-wrap: wrap; }
 
 .team-table-card  { overflow: hidden; }
+.team-table-card .eng-list-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .team-table-card .eng-list { overflow-x: auto; }
 
 .team-table-header {
@@ -1727,6 +1728,7 @@ body {
 
 
 
+
 /* ════════════════════════════════════════
    MOBILE BOTTOM NAV
 ════════════════════════════════════════ */
@@ -1762,10 +1764,9 @@ body {
   .week-label      { font-size: 12px !important; max-width: 120px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .week-picker-btn { width: 28px !important; height: 28px !important; }
 
-  /* ── Hide desktop tab nav ── */
+  /* ── Hide desktop tab nav, show bottom nav ── */
   .tabnav { display: none !important; }
 
-  /* ── Show mobile bottom nav ── */
   .mobile-bottomnav {
     display: flex !important;
     position: fixed;
@@ -1802,10 +1803,10 @@ body {
     background: rgba(255,255,255,0.1);
   }
 
-  /* ── Main content bottom padding (so content isn't behind nav) ── */
+  /* ── Padding for fixed bottom nav ── */
   .main-content { padding-bottom: 68px !important; }
 
-  /* ── Dashboard hero — stack vertically on mobile ── */
+  /* ── Dashboard hero ── */
   .dash-hero {
     flex-direction: column !important;
     gap: var(--space-4) !important;
@@ -1817,7 +1818,7 @@ body {
   .stat-card     { padding: var(--space-3) !important; }
   .stat-num      { font-size: 1.5rem !important; }
 
-  /* ── Day cards — horizontal scroll ── */
+  /* ── Day cards horizontal scroll ── */
   .day-summary-cards {
     display: flex !important;
     overflow-x: auto !important;
@@ -1827,28 +1828,27 @@ body {
     -webkit-overflow-scrolling: touch;
     grid-template-columns: unset !important;
   }
-  .day-card {
-    min-width: 220px !important;
-    scroll-snap-align: start;
-    flex-shrink: 0;
-  }
+  .day-card { min-width: 220px !important; scroll-snap-align: start; flex-shrink: 0; }
 
-  /* ── Tables — horizontal scroll ── */
+  /* ── Tables horizontal scroll ── */
   .roster-grid-wrap,
   .editor-grid-wrap,
   .summary-table-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
   .roster-grid, .editor-grid { min-width: 680px; }
   .summary-table              { min-width: 580px; }
 
-  /* ── Editor toolbar ── */
-  .editor-toolbar { flex-wrap: wrap !important; padding: var(--space-3) !important; gap: var(--space-2) !important; }
-  .editor-legend  { display: none !important; }
+  /* ── TEAM PAGE FIX — allow horizontal scroll on eng list ── */
+  .team-table-card { overflow: visible !important; }
+  .team-table-card .eng-list { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .eng-list-row,
+  .eng-list-header { grid-template-columns: 1fr 100px 130px !important; padding: var(--space-3) var(--space-4) !important; }
 
-  /* ── Cards ── */
-  .page-card  { padding: var(--space-4) !important; border-radius: var(--radius-md) !important; }
-  .page-container { padding: var(--space-4) !important; }
+  /* ── Publishing hero — stack & fix overflow ── */
+  .pub-hero { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-3) !important; padding: var(--space-5) !important; }
+  .pub-hero-week { white-space: normal !important; font-size: var(--text-xs) !important; padding: var(--space-2) var(--space-3) !important; }
+  .pub-title    { font-size: var(--text-xl) !important; }
+  .pub-subtitle { font-size: var(--text-sm) !important; }
 
-  /* ── Publishing ── */
   .pub-analytics-grid { grid-template-columns: repeat(2, 1fr) !important; gap: var(--space-3) !important; }
   .pub-daily-grid     { grid-template-columns: repeat(2, 1fr) !important; }
   .pub-two-col        { grid-template-columns: 1fr !important; }
@@ -1856,8 +1856,13 @@ body {
   .pub-link-actions .btn-primary,
   .pub-link-actions .btn-secondary { flex: 1; justify-content: center !important; }
 
-  /* ── Team page ── */
-  .team-header { flex-wrap: wrap !important; gap: var(--space-3) !important; }
+  /* ── Editor ── */
+  .editor-toolbar { flex-wrap: wrap !important; padding: var(--space-3) !important; gap: var(--space-2) !important; }
+  .editor-legend  { display: none !important; }
+
+  /* ── General ── */
+  .page-card      { padding: var(--space-4) !important; border-radius: var(--radius-md) !important; }
+  .page-container { padding: var(--space-4) !important; }
   .team-actions-grid { grid-template-columns: 1fr !important; }
 }
 
