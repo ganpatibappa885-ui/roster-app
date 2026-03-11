@@ -22,26 +22,6 @@ const Icons = {
   open:     'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3',
 }
 
-function parseTimeToMins(str) {
-  if (!str) return 0
-  const [time, ampm] = str.trim().split(' ')
-  let [h, m] = time.split(':').map(Number)
-  if (ampm === 'PM' && h !== 12) h += 12
-  if (ampm === 'AM' && h === 12) h = 0
-  return h * 60 + m
-}
-
-function minsToLabel(mins) {
-  const norm = ((mins % 1440) + 1440) % 1440
-  const h = Math.floor(norm / 60)
-  const m = norm % 60
-  const ampm = h < 12 ? 'AM' : 'PM'
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-  return `${h12}:${m.toString().padStart(2,'0')} ${ampm}`
-}
-
-const ALL_SLOTS = Array.from({ length: 48 }, (_, i) => i * 30)
-
 export default function PDFExport({ timezone }) {
   const { engineers, activeWeekId, weeks } = useRosterStore()
   const activeWeek = weeks?.[activeWeekId]
@@ -136,310 +116,159 @@ export default function PDFExport({ timezone }) {
       const { jsPDF } = await import('jspdf')
       const autoTable = (await import('jspdf-autotable')).default
 
-      // ─── PAGE SETUP ──────────────────────────────────────────────────────
-      // Reference: 792 × 612 pts, US Letter landscape
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [792, 612] })
-      const PW = 792
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+      const PW = doc.internal.pageSize.getWidth()
+      const tz = timezone || 'IST'
 
-      // ─── COLORS ──────────────────────────────────────────────────────────
-      const BLACK  = [0,   0,   0  ]
-      const GREEN  = [0,   128, 0  ]   // shift start
-      const RED    = [192, 0,   0  ]   // leave
-      const PINK   = [220, 0,   120]   // comp off
-      const PURPLE = [128, 0,   128]   // public holiday
-      const DKBLUE = [0,   0,   180]   // weekly off / IST text
-      const TEAL   = [0,   96,  96 ]   // EST text
-      const PLUM   = [75,  0,   130]   // PST text
-      const LGRAY  = [200, 200, 200]
-
-      // ─── TIMEZONE OFFSETS ────────────────────────────────────────────────
-      // IST is UTC+5:30. EST = IST − 10h30m = −630 min. PST = IST − 13h30m = −810 min
-      const EST_OFF = 630
-      const PST_OFF = 810
-
-      // ─── COLUMN WIDTHS — measured pixel-perfectly from reference PDF ─────
-      // Left margin = 50. Content ends at x=742. Right margin = 50.
-      const M = 50   // margin
-
-      // Left TZ block: EST | EST Date | PST | PST Date | IST  (total 58 pts)
-      const EL=13, EDL=13, PL=11, PDL=11, IL=10
-
-      // Day area: x=108 to x=676  →  568 pts / 7 days = 81.14 / day
-      const DAY_X   = M + EL+EDL+PL+PDL+IL   // 108
-      const DAY_END = 676
-      const DAY_AREA= DAY_END - DAY_X          // 568
-      const DAY_W   = DAY_AREA / 7             // 81.14 per day
-      const ENG_W   = DAY_W / 8               // 10.14 per engineer slot
-
-      // Right TZ block: IST | PST | PST Date | EST | EST Date  (total 66 pts)
-      const IR=14, PR=10, PDR=14, ER=11, EDR=17
-
-      // ─── VERTICAL POSITIONS — from pdfplumber measurements ───────────────
-      const TITLE_Y = 63     // title text baseline
-      const H1_TOP  = 65     // header row 1 top
-      const H1_BOT  = 78     // header row 1 bottom = row 2 top
-      const H2_BOT  = 83     // header row 2 bottom = data start
-      const DATA_Y  = H2_BOT
-      const ROW_H   = 3.56   // (250.1 − 83) / 47 = 3.556 pts per 30-min row
-      const HDR_H   = H2_BOT - H1_TOP   // 18 pts total header height
-
-      // ─── TEXT HELPER ─────────────────────────────────────────────────────
-      const ct = (text, x, w, y, color, fs, bold) => {
-        doc.setFontSize(fs)
-        doc.setTextColor(...color)
-        doc.setFont('helvetica', bold ? 'bold' : 'normal')
-        doc.text(String(text), x + w / 2, y, { align: 'center' })
-      }
-
-      // ─── DATE LABEL ──────────────────────────────────────────────────────
-      const dateLbl = (slotMins, off) => {
-        const d = slotMins - off
-        return d < 0 ? 'Prev Date' : d >= 1440 ? 'Next Date' : 'Same Date'
-      }
-
-      // ─── ACTIVE ENGINEERS AT A SLOT ──────────────────────────────────────
-      const getActive = (slotMins, dayId) => {
-        const out = []
-        engineers.forEach(eng => {
-          const e = schedule[eng.id]?.[dayId]
-          if (!e || e.status !== 'WORKING') return
-          const s   = parseTimeToMins(e.startTime)
-          const end = parseTimeToMins(e.endTime)
-          const active = end > s
-            ? (slotMins >= s && slotMins < end)
-            : (slotMins >= s || slotMins < end)
-          if (active) out.push({ name: eng.name, isStart: slotMins === s, isOnCall: !!e.isOnCall })
-        })
-        return out.sort((a, b) => a.name.localeCompare(b.name))
-      }
-
-      // ─── TITLE ───────────────────────────────────────────────────────────
-      doc.setFontSize(7)
-      doc.setTextColor(...BLACK)
+      // ─── HEADER BANNER ───────────────────────────────────────────────────
+      doc.setFillColor(1, 77, 69)
+      doc.rect(0, 0, PW, 36, 'F')
+      doc.setFontSize(14)
+      doc.setTextColor(255, 255, 255)
       doc.setFont('helvetica', 'bold')
-      doc.text(weekLabel, PW / 2, TITLE_Y, { align: 'center' })
-
-      // ─── HEADER BACKGROUND — TZ column color bands (both rows combined) ──
-      // EST band: light blue
-      doc.setFillColor(221, 234, 247)
-      doc.rect(M,                                    H1_TOP, EL+EDL,       HDR_H, 'F')
-      doc.rect(DAY_END + IR+PR+PDR,                  H1_TOP, ER+EDR,       HDR_H, 'F')
-      // PST band: light yellow
-      doc.setFillColor(255, 248, 195)
-      doc.rect(M + EL+EDL,                           H1_TOP, PL+PDL,       HDR_H, 'F')
-      doc.rect(DAY_END + IR,                         H1_TOP, PR+PDR,       HDR_H, 'F')
-      // IST band: light green
-      doc.setFillColor(226, 239, 218)
-      doc.rect(M + EL+EDL+PL+PDL,                   H1_TOP, IL,           HDR_H, 'F')
-      doc.rect(DAY_END,                              H1_TOP, IR,           HDR_H, 'F')
-
-      // ─── HEADER ROW 1: TZ group labels + day names ───────────────────────
-      const h1Y = H1_TOP + (H1_BOT - H1_TOP) * 0.72   // ≈ 74.4 pt
-
-      // Left TZ group labels
-      ct('EST',  M,              EL+EDL,    h1Y, TEAL,  4.5, true)
-      ct('PST',  M + EL+EDL,    PL+PDL,    h1Y, PLUM,  4.5, true)
-      ct('IST',  M + EL+EDL+PL+PDL, IL,   h1Y, DKBLUE, 4.5, true)
-      // Right TZ group labels
-      ct('IST',  DAY_END,           IR,          h1Y, DKBLUE, 4.5, true)
-      ct('PST',  DAY_END + IR,      PR+PDR,      h1Y, PLUM,   4.5, true)
-      ct('EST',  DAY_END + IR+PR+PDR, ER+EDR,   h1Y, TEAL,   4.5, true)
-
-      // Day name backgrounds + labels
-      days.forEach((day, di) => {
-        const dx = DAY_X + di * DAY_W
-        doc.setFillColor(...(day.isWeekend ? [255, 252, 210] : [236, 242, 254]))
-        doc.rect(dx, H1_TOP, DAY_W, H1_BOT - H1_TOP, 'F')
-        ct(`${day.label}, ${day.date}`, dx, DAY_W, h1Y, BLACK, 4, true)
-      })
-
-      // ─── HEADER ROW 2: Sub-col labels + "Eng N" per day ─────────────────
-      const h2Y = H1_BOT + (H2_BOT - H1_BOT) * 0.72   // ≈ 81.6 pt
-
-      let hx = M
-      ct('EST',      hx, EL,  h2Y, TEAL,   3.5, true); hx += EL
-      ct('EST Date', hx, EDL, h2Y, TEAL,   3,   true); hx += EDL
-      ct('PST',      hx, PL,  h2Y, PLUM,   3.5, true); hx += PL
-      ct('PST Date', hx, PDL, h2Y, PLUM,   3,   true); hx += PDL
-      ct('IST',      hx, IL,  h2Y, DKBLUE, 3.5, true); hx += IL
-
-      days.forEach((day, di) => {
-        doc.setFillColor(...(day.isWeekend ? [255, 252, 210] : [236, 242, 254]))
-        doc.rect(hx + di * DAY_W, H1_BOT, DAY_W, H2_BOT - H1_BOT, 'F')
-        for (let ei = 0; ei < 8; ei++) {
-          ct(`Eng ${ei + 1}`, hx + di * DAY_W + ei * ENG_W, ENG_W, h2Y, BLACK, 2.8, true)
-        }
-      })
-      hx += DAY_AREA
-
-      ct('IST',      hx, IR,  h2Y, DKBLUE, 3.5, true); hx += IR
-      ct('PST',      hx, PR,  h2Y, PLUM,   3.5, true); hx += PR
-      ct('PST Date', hx, PDR, h2Y, PLUM,   3,   true); hx += PDR
-      ct('EST',      hx, ER,  h2Y, TEAL,   3.5, true); hx += ER
-      ct('EST Date', hx, EDR, h2Y, TEAL,   3,   true)
-
-      // ─── DATA ROWS ───────────────────────────────────────────────────────
-      ALL_SLOTS.forEach((slotMins, ri) => {
-        const rowY   = DATA_Y + ri * ROW_H
-        const textY  = rowY + ROW_H * 0.78
-        const isHour = slotMins % 60 === 0
-
-        const istLbl = minsToLabel(slotMins)
-        const estLbl = minsToLabel((slotMins - EST_OFF + 2880) % 1440)
-        const pstLbl = minsToLabel((slotMins - PST_OFF + 2880) % 1440)
-        const estDt  = dateLbl(slotMins, EST_OFF)
-        const pstDt  = dateLbl(slotMins, PST_OFF)
-
-        // Alternating row shade
-        if (ri % 2 === 0) {
-          doc.setFillColor(249, 250, 252)
-          doc.rect(M, rowY, PW - M * 2, ROW_H, 'F')
-        }
-
-        // Horizontal gridline — heavier on the hour
-        doc.setDrawColor(...LGRAY)
-        doc.setLineWidth(isHour ? 0.28 : 0.06)
-        doc.line(M, rowY, PW - M, rowY)
-
-        // Left TZ
-        let cx = M
-        ct(estLbl, cx, EL,  textY, TEAL,   2,   false); cx += EL
-        ct(estDt,  cx, EDL, textY, TEAL,   1.75, false); cx += EDL
-        ct(pstLbl, cx, PL,  textY, PLUM,   2,   false); cx += PL
-        ct(pstDt,  cx, PDL, textY, PLUM,   1.75, false); cx += PDL
-        ct(istLbl, cx, IL,  textY, DKBLUE, 2,   isHour); cx += IL
-
-        // Engineer day columns
-        days.forEach(day => {
-          const active = getActive(slotMins, day.id)
-          active.forEach((eng, ei) => {
-            if (ei >= 8) return
-            const ex    = cx + ei * ENG_W
-            const color = eng.isStart ? GREEN : BLACK
-            const label = eng.isOnCall ? `${eng.name} OCS` : eng.name
-            ct(label, ex, ENG_W, textY, color, 1.9, eng.isStart)
-          })
-          cx += DAY_W
-        })
-
-        // Right TZ
-        ct(istLbl, cx, IR,  textY, DKBLUE, 2,   isHour); cx += IR
-        ct(pstLbl, cx, PR,  textY, PLUM,   2,   false);  cx += PR
-        ct(pstDt,  cx, PDR, textY, PLUM,   1.75, false); cx += PDR
-        ct(estLbl, cx, ER,  textY, TEAL,   2,   false);  cx += ER
-        ct(estDt,  cx, EDR, textY, TEAL,   1.75, false)
-      })
-
-      // ─── GRID BORDERS ────────────────────────────────────────────────────
-      const TOTAL_H = ALL_SLOTS.length * ROW_H   // ≈ 171 pts
-
-      // Outer box (full grid including headers)
-      doc.setDrawColor(80, 80, 80)
-      doc.setLineWidth(0.5)
-      doc.rect(M, H1_TOP, PW - M * 2, HDR_H + TOTAL_H)
-
-      // Strong TZ ↔ day-area dividers
-      doc.setLineWidth(0.5)
-      doc.line(DAY_X,   H1_TOP, DAY_X,   DATA_Y + TOTAL_H)
-      doc.line(DAY_END, H1_TOP, DAY_END, DATA_Y + TOTAL_H)
-
-      // Left TZ internal dividers
-      doc.setDrawColor(...LGRAY)
-      doc.setLineWidth(0.1)
-      let vx = M
-      for (const w of [EL, EDL, PL, PDL]) {
-        vx += w; doc.line(vx, H1_TOP, vx, DATA_Y + TOTAL_H)
-      }
-
-      // Right TZ internal dividers
-      vx = DAY_END
-      for (const w of [IR, PR, PDR, ER]) {
-        vx += w; doc.line(vx, H1_TOP, vx, DATA_Y + TOTAL_H)
-      }
-
-      // Day-to-day dividers (medium weight)
-      doc.setDrawColor(120, 120, 120)
-      doc.setLineWidth(0.25)
-      for (let di = 1; di < 7; di++) {
-        const dvx = DAY_X + di * DAY_W
-        doc.line(dvx, H1_TOP, dvx, DATA_Y + TOTAL_H)
-      }
-
-      // Eng sub-col dividers within each day (very fine, data rows only)
-      doc.setDrawColor(...LGRAY)
-      doc.setLineWidth(0.05)
-      for (let di = 0; di < 7; di++) {
-        for (let ei = 1; ei < 8; ei++) {
-          const evx = DAY_X + di * DAY_W + ei * ENG_W
-          doc.line(evx, H1_BOT, evx, DATA_Y + TOTAL_H)
-        }
-      }
-
-      // Header row 1 / row 2 separator
-      doc.setDrawColor(150, 150, 150)
-      doc.setLineWidth(0.15)
-      doc.line(M, H1_BOT, PW - M, H1_BOT)
-
-      // ─── FOOTER ──────────────────────────────────────────────────────────
-      const footY = DATA_Y + TOTAL_H + 4
-      doc.setFontSize(5)
-      doc.setTextColor(...BLACK)
-      doc.setFont('helvetica', 'bold')
-      doc.text(weekLabel, PW / 2, footY, { align: 'center' })
-
-      // Footer day strip
-      doc.setFontSize(4)
+      doc.text('Roster Management', 20, 15)
+      doc.setFontSize(9)
       doc.setFont('helvetica', 'normal')
-      const dayStr = days.map(d => d.label).join('   ')
-      doc.text(`EST  PST  ${dayStr}  PST  EST`, PW / 2, footY + 5, { align: 'center' })
+      doc.setTextColor(153, 246, 228)
+      doc.text(weekLabel, 20, 27)
+      doc.setTextColor(153, 246, 228)
+      doc.setFontSize(8)
+      doc.text(`Times in ${tz} · Generated ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}`, PW - 20, 27, { align: 'right' })
 
-      // Legend row
-      const legend = [
-        { t: 'Red Font - on Leave',         c: RED    },
-        { t: 'Blue Font - Weekly Off',       c: DKBLUE },
-        { t: 'Green - Start of the shift',   c: GREEN  },
-        { t: 'Purple Font - Public Holiday', c: PURPLE },
-        { t: 'Pink Font - Com off',          c: PINK   },
-      ]
-      doc.setFontSize(3.5)
-      let lx = M + 40
-      legend.forEach(item => {
-        doc.setFont('helvetica', 'normal')
-        doc.setTextColor(...item.c)
-        doc.text(item.t, lx, footY + 10)
-        lx += doc.getTextWidth(item.t) + 8
+      // ─── MAIN ROSTER TABLE ────────────────────────────────────────────────
+      const STATUS_COLORS = {
+        WORKING:      { text: [22, 163, 74],   bg: [220, 252, 231] },
+        WEEKLY_OFF:   { text: [8, 145, 178],   bg: [207, 250, 254] },
+        ANNUAL_LEAVE: { text: [220, 38, 38],   bg: [254, 226, 226] },
+        COMP_OFF:     { text: [219, 39, 119],  bg: [252, 231, 243] },
+        SICK_LEAVE:   { text: [217, 119, 6],   bg: [254, 243, 199] },
+        PUBLIC_HOL:   { text: [124, 58, 237],  bg: [237, 233, 254] },
+      }
+      const SHIFT_COLORS = {
+        Morning:   { text: [6, 95, 70],   bg: [209, 250, 229] },
+        Night:     { text: [55, 48, 163], bg: [224, 231, 255] },
+        Afternoon: { text: [146, 64, 14], bg: [254, 243, 199] },
+        Evening:   { text: [124, 45, 18], bg: [255, 237, 213] },
+      }
+
+      const head = [['Engineer', 'Shift', ...days.map(d => `${d.short}\n${d.date}`)]]
+      const body = engineers.map(eng => {
+        const row = [eng.name, SHIFTS[eng.shift]?.label || eng.shift]
+        days.forEach(day => {
+          const e = schedule[eng.id]?.[day.id]
+          if (!e) { row.push('—'); return }
+          const st = e.status
+          if (st === 'WORKING' && e.startTime) {
+            const s = convertTime(e.startTime, tz)
+            const en = convertTime(e.endTime, tz)
+            row.push(`${STATUSES[st]?.label}\n${typeof s === 'object' ? s.time : s} – ${typeof en === 'object' ? en.time : en}${e.isOnCall ? '\n🔔 On Call' : ''}`)
+          } else {
+            row.push(STATUSES[st]?.label || st)
+          }
+        })
+        return row
       })
 
-      // ─── PAGE 2: ENGINEER SUMMARY ────────────────────────────────────────
-      if (includeSummary) {
-        doc.addPage([792, 612], 'landscape')
-        const W2 = 792, sm = 30
-        doc.setFillColor(1, 77, 69)
-        doc.rect(0, 0, W2, 28, 'F')
-        doc.setFontSize(14); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold')
-        doc.text('Engineer Summary', sm, 14)
-        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(204,251,241)
-        doc.text(weekLabel, sm, 22)
+      autoTable(doc, {
+        head,
+        body,
+        startY: 44,
+        margin: { left: 15, right: 15 },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: { top: 5, bottom: 5, left: 5, right: 5 },
+          valign: 'middle',
+          lineColor: [226, 232, 240],
+          lineWidth: 0.4,
+          font: 'helvetica',
+          overflow: 'linebreak',
+        },
+        headStyles: {
+          fillColor: [10, 138, 122],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'center',
+          valign: 'middle',
+          minCellHeight: 22,
+        },
+        columnStyles: {
+          0: { cellWidth: 40, fontStyle: 'bold', halign: 'left' },
+          1: { cellWidth: 28, halign: 'center' },
+          ...Object.fromEntries(days.map((_, i) => [i + 2, { cellWidth: 'auto', halign: 'center', minCellHeight: 28 }])),
+        },
+        alternateRowStyles: { fillColor: [240, 253, 250] },
+        didParseCell(data) {
+          if (data.section === 'head') return
+          const col = data.column.index
+          const row = data.row.index
+          // Shift column color
+          if (col === 1) {
+            const eng = engineers[row]
+            const sc = SHIFT_COLORS[eng?.shift]
+            if (sc) { data.cell.styles.fillColor = sc.bg; data.cell.styles.textColor = sc.text }
+            return
+          }
+          // Day columns
+          if (col >= 2) {
+            const dayIdx = col - 2
+            const eng = engineers[row]
+            const e = eng ? schedule[eng.id]?.[days[dayIdx]?.id] : null
+            if (!e) return
+            const sc = STATUS_COLORS[e.status]
+            if (sc) { data.cell.styles.fillColor = sc.bg; data.cell.styles.textColor = sc.text }
+            if (days[dayIdx]?.isWeekend) data.cell.styles.fillColor = data.cell.styles.fillColor
+          }
+        },
+        didDrawCell(data) {
+          // Weekend column header darker
+          if (data.section === 'head' && data.column.index >= 2) {
+            const dayIdx = data.column.index - 2
+            if (days[dayIdx]?.isWeekend) {
+              doc.setFillColor(6, 78, 59)
+              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
+              doc.setFontSize(8); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold')
+              const lines = data.cell.raw.split('\n')
+              doc.text(lines[0], data.cell.x + data.cell.width / 2, data.cell.y + 9, { align: 'center' })
+              doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(153, 246, 228)
+              doc.text(lines[1] || '', data.cell.x + data.cell.width / 2, data.cell.y + 17, { align: 'center' })
+            }
+          }
+        },
+      })
 
-        const sumHeaders = ['Engineer','Shift','Working','Weekly Off','Annual Leave','Comp Off','Sick Leave','Public Hol','On Call Days']
+      // ─── PAGE 2: SUMMARY TABLE ────────────────────────────────────────────
+      if (includeSummary) {
+        doc.addPage()
+        doc.setFillColor(1, 77, 69)
+        doc.rect(0, 0, PW, 36, 'F')
+        doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold')
+        doc.text('Engineer Summary', 20, 15)
+        doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(153, 246, 228)
+        doc.text(weekLabel, 20, 27)
+
+        const sumHeaders = [['Engineer', 'Shift', 'Working', 'Weekly Off', 'Annual Leave', 'Comp Off', 'Sick Leave', 'Public Hol', 'On Call']]
         const sumRows = summary.map(({ eng, counts, onCallDays }) => [
           eng.name, SHIFTS[eng.shift]?.label || eng.shift,
-          counts.WORKING||0, counts.WEEKLY_OFF||0, counts.ANNUAL_LEAVE||0,
-          counts.COMP_OFF||0, counts.SICK_LEAVE||0, counts.PUBLIC_HOL||0, onCallDays,
+          counts.WORKING || 0, counts.WEEKLY_OFF || 0, counts.ANNUAL_LEAVE || 0,
+          counts.COMP_OFF || 0, counts.SICK_LEAVE || 0, counts.PUBLIC_HOL || 0, onCallDays,
         ])
         autoTable(doc, {
-          head: [sumHeaders], body: sumRows, startY: 35,
-          margin: { left: sm, right: sm },
-          styles: { fontSize: 9, cellPadding: 4, valign: 'middle', halign: 'center', lineColor: [226,232,240], lineWidth: 0.5 },
-          headStyles: { fillColor: [10,138,122], textColor: 255, fontStyle: 'bold' },
-          alternateRowStyles: { fillColor: [240,253,250] },
+          head: sumHeaders, body: sumRows, startY: 44,
+          margin: { left: 20, right: 20 },
+          styles: { fontSize: 9, cellPadding: 5, valign: 'middle', halign: 'center', lineColor: [226, 232, 240], lineWidth: 0.4 },
+          headStyles: { fillColor: [10, 138, 122], textColor: 255, fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [240, 253, 250] },
           columnStyles: { 0: { fontStyle: 'bold', halign: 'left', cellWidth: 45 }, 1: { halign: 'left', cellWidth: 35 } },
         })
       }
 
       doc.save(`Roster_${activeWeekId}.pdf`)
-    } catch (err) { console.error('PDF export error:', err) }
-    setExporting(false)
+    } catch (err) {
+      console.error('PDF export error:', err)
+    } finally {
+      setExporting(false)
+    }
   }
 
 
