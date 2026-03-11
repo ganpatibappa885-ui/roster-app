@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react'
 import { saveSnapshot } from '../utils/supabase.js'
 import { useRosterStore, STATUSES, SHIFTS } from '../store/rosterStore.js'
 import { convertTime, TZ_INFO } from '../utils/timezone.js'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 
 const Icon = ({ d, size = 18 }) => (
@@ -113,9 +115,6 @@ export default function PDFExport({ timezone }) {
   async function handleExport() {
     setExporting(true)
     try {
-      const { jsPDF } = await import('jspdf')
-      const autoTable = (await import('jspdf-autotable')).default
-
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
       const PW = doc.internal.pageSize.getWidth()
       const tz = timezone || 'IST'
