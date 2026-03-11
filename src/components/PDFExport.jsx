@@ -115,7 +115,7 @@ export default function PDFExport({ timezone }) {
   async function handleExport() {
     setExporting(true)
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' })
       const PW = doc.internal.pageSize.getWidth()
       const tz = timezone || 'IST'
 
@@ -164,6 +164,15 @@ export default function PDFExport({ timezone }) {
         Evening:   { text: [124, 45, 18], bg: [255, 237, 213] },
       }
 
+      const STATUS_SHORT = {
+        WORKING:      'Working',
+        WEEKLY_OFF:   'W/Off',
+        ANNUAL_LEAVE: 'A/Leave',
+        COMP_OFF:     'Comp Off',
+        SICK_LEAVE:   'Sick',
+        PUBLIC_HOL:   'P/Hol',
+      }
+
       // ─── BUILD TABLE: Engineer | Shift | [Mon IST, Mon EST, Mon PST] ... ──
       // Two header rows: row1 = day name spanning 3 cols, row2 = IST/EST/PST
       const TZS = ['IST', 'EST', 'PST']
@@ -176,11 +185,11 @@ export default function PDFExport({ timezone }) {
       // jspdf-autotable supports a single head array so we'll use didDrawCell
       // to draw the two-row header manually and use a single head row for layout
       const colStyles = {
-        0: { cellWidth: 38, fontStyle: 'bold', halign: 'left' },
-        1: { cellWidth: 22, halign: 'center' },
+        0: { cellWidth: 45, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 28, halign: 'center' },
       }
       // Each TZ sub-column per day
-      const TZ_COL_W = 28
+      const TZ_COL_W = 38
       days.forEach((_, di) => {
         TZS.forEach((_, ti) => {
           colStyles[2 + di * 3 + ti] = { cellWidth: TZ_COL_W, halign: 'center', fontSize: 6.5 }
@@ -197,9 +206,11 @@ export default function PDFExport({ timezone }) {
           TZS.forEach(tz => {
             if (!e) { row.push('—'); return }
             if (e.status === 'WORKING' && e.startTime) {
-              row.push(`${shiftTime(e.startTime, tz)}\n–\n${shiftTime(e.endTime, tz)}${e.isOnCall ? '\n🔔' : ''}`)
+              const s = shiftTime(e.startTime, tz)
+              const en = shiftTime(e.endTime, tz)
+              row.push(`${s} – ${en}${e.isOnCall ? ' 🔔' : ''}`)
             } else {
-              row.push(STATUSES[e.status]?.label || e.status)
+              row.push(STATUS_SHORT[e.status] || e.status)
             }
           })
         })
@@ -214,19 +225,19 @@ export default function PDFExport({ timezone }) {
         margin: { left: 10, right: 10 },
         tableWidth: 'auto',
         styles: {
-          fontSize: 6.5,
-          cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
+          fontSize: 7,
+          cellPadding: { top: 4, bottom: 4, left: 3, right: 3 },
           valign: 'middle',
           lineColor: [200, 220, 215],
           lineWidth: 0.3,
           overflow: 'linebreak',
-          minCellHeight: 20,
+          minCellHeight: 18,
         },
         headStyles: {
           fillColor: [10, 138, 122],
           textColor: 255,
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 7.5,
           halign: 'center',
           valign: 'middle',
           minCellHeight: 14,
