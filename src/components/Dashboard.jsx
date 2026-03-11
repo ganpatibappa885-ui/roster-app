@@ -93,10 +93,12 @@ export default function Dashboard({ timezone }) {
               {engineers.map((eng, idx) => (
                 <tr key={eng.id} className={idx % 2 === 0 ? 'row-even' : 'row-odd'}>
                   <td className="cell-name">
-                    <div className="eng-avatar-sm">{eng.name[0]}</div>
-                    <div>
-                      <div className="eng-name">{eng.name}</div>
-                      <div className="eng-role">{eng.role}</div>
+                    <div className="cell-name-inner">
+                      <div className="eng-avatar-sm">{eng.name[0]}</div>
+                      <div>
+                        <div className="eng-name">{eng.name}</div>
+                        <div className="eng-role">{eng.role}</div>
+                      </div>
                     </div>
                   </td>
                   <td className="cell-shift">

@@ -635,11 +635,14 @@ body {
 
 .cell-name {
   padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.cell-name-inner {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
 }
 
 .cell-shift {
