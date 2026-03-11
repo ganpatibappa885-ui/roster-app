@@ -89,12 +89,12 @@ export default function EngineerManager() {
       </div>
 
       {/* ENGINEER LIST TABLE */}
-      <div className="page-card team-table-card no-pad">
+      <div className="page-card team-table-card" style={{padding:0, overflow:'visible'}}>
         <div className="team-table-header">
           <h2 className="team-table-title">Team Members</h2>
           <span className="team-table-count">{engineers.length}</span>
         </div>
-        <div style={{overflowX:'auto', WebkitOverflowScrolling:'touch'}}>
+        <div style={{overflowX:'auto', WebkitOverflowScrolling:'touch', borderRadius:'0 0 20px 20px'}}>
         <div className="eng-list">
           <div className="eng-list-header">
             <span className="eng-col-name">Member</span>
