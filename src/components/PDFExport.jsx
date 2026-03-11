@@ -209,7 +209,7 @@ export default function PDFExport({ timezone }) {
             if (e.status === 'WORKING' && e.startTime) {
               const s = shiftTime(e.startTime, tz)
               const en = shiftTime(e.endTime, tz)
-              row.push(`${s} – ${en}${e.isOnCall ? ' 🔔' : ''}`)
+              row.push(`${s}-${en}${e.isOnCall ? '🔔' : ''}`)
             } else {
               row.push(STATUS_SHORT[e.status] || e.status)
             }
