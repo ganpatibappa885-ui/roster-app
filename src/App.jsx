@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { loadSnapshot } from '../utils/supabase.js'
+import { loadSnapshot } from './utils/supabase.js'
 
 const STATUSES = {
   WORKING:      { label: 'Working',        color: '#16a34a', bg: '#dcfce7' },
