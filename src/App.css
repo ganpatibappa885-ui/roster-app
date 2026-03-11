@@ -996,6 +996,37 @@ body {
 .split-label { font-size: var(--text-xs); font-weight: var(--font-semibold); color: var(--accent); margin: var(--space-3) 0 var(--space-2); text-transform: uppercase; letter-spacing: 0.05em; }
 .split-time-badge { color: #7c3aed !important; font-style: italic; }
 
+/* ── APPLY TO DAYS ── */
+.apply-days-section { border-top: 1.5px dashed var(--border); padding-top: var(--space-4); margin-top: var(--space-2); }
+.apply-days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: var(--space-2); }
+.apply-day-btn {
+  padding: 4px 2px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-card); cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.apply-day-btn:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-pale); }
+.apply-day-btn.apply-day-on { background: var(--accent); border-color: var(--accent-dark); }
+.apply-day-btn.apply-day-on .apply-day-name,
+.apply-day-btn.apply-day-on .apply-day-date { color: #fff; }
+.apply-day-btn.apply-day-current { opacity: 0.4; cursor: default; background: var(--bg-hover); }
+.apply-day-btn.apply-day-weekend { border-color: #c4b5fd; }
+.apply-day-btn.apply-day-weekend.apply-day-on { background: #7c3aed; border-color: #5b21b6; }
+.apply-day-name { font-size: 10px; font-weight: var(--font-bold); color: var(--text-primary); }
+.apply-day-date { font-size: 8px; color: var(--text-muted); }
+.apply-row { display: flex; gap: 4px; margin-bottom: var(--space-2); flex-wrap: wrap; }
+.apply-quick-btn {
+  padding: 3px 8px; font-size: 11px; border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); background: var(--bg-hover); cursor: pointer;
+  color: var(--text-secondary); font-weight: var(--font-medium); transition: all 0.15s;
+}
+.apply-quick-btn:hover { background: var(--accent-pale); border-color: var(--accent); color: var(--accent-dark); }
+.apply-confirm-btn {
+  width: 100%; padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  font-size: var(--text-sm); font-weight: var(--font-semibold); transition: all 0.2s;
+}
+.apply-confirm-btn:hover { background: var(--accent-dark); }
+.apply-confirm-btn.apply-done { background: #16a34a; }
+
 .toggle-btn {
   padding: 11px 16px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
   background: var(--bg-elevated); color: var(--text-muted);

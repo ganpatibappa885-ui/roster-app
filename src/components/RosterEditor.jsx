@@ -19,6 +19,8 @@ export default function RosterEditor({ timezone }) {
 
   const [editing,   setEditing]   = useState(null)
   const [filterEng, setFilterEng] = useState('')
+  const [applyDays, setApplyDays] = useState([])
+  const [applied,   setApplied]   = useState(false)
 
   const filtered   = engineers.filter(e => e.name.toLowerCase().includes(filterEng.toLowerCase()))
   const entry      = editing ? schedule[editing.engId]?.[editing.dayId] : null
@@ -27,6 +29,29 @@ export default function RosterEditor({ timezone }) {
 
   function update(field, value) {
     updateScheduleEntry(editing.engId, editing.dayId, { [field]: value })
+  }
+
+  function applyToSelectedDays() {
+    const current = schedule[editing.engId]?.[editing.dayId]
+    if (!current) return
+    applyDays.forEach(dayId => {
+      if (dayId === editing.dayId) return
+      updateScheduleEntry(editing.engId, dayId, {
+        status:     current.status,
+        startTime:  current.startTime,
+        endTime:    current.endTime,
+        isSplit:    current.isSplit,
+        startTime2: current.startTime2,
+        endTime2:   current.endTime2,
+        isOnCall:   current.isOnCall,
+      })
+    })
+    setApplied(true)
+    setTimeout(() => setApplied(false), 2000)
+  }
+
+  function toggleApplyDay(dayId) {
+    setApplyDays(prev => prev.includes(dayId) ? prev.filter(d => d !== dayId) : [...prev, dayId])
   }
 
   return (
@@ -89,7 +114,7 @@ export default function RosterEditor({ timezone }) {
                       <td
                         key={day.id}
                         className={`cell-editable${day.isWeekend ? ' weekend-cell' : ''}${isActive ? ' cell-active' : ''}`}
-                        onClick={() => setEditing({ engId: eng.id, dayId: day.id })}
+                        onClick={() => { setEditing({ engId: eng.id, dayId: day.id }); setApplyDays([]); setApplied(false) }}
                       >
                         <div className="edit-chip" style={{ background: st.bg, color: st.color }}>
                           {st.label}
@@ -258,6 +283,39 @@ export default function RosterEditor({ timezone }) {
                 onChange={e => update('notes', e.target.value)}
                 rows={3}
               />
+            </div>
+
+            {/* APPLY TO DAYS */}
+            <div className="panel-section apply-days-section">
+              <label className="panel-label">Apply to other days</label>
+              <div className="apply-days-grid">
+                {days.map(day => {
+                  const isCurrent = day.id === editing?.dayId
+                  const isSelected = applyDays.includes(day.id)
+                  return (
+                    <button
+                      key={day.id}
+                      disabled={isCurrent}
+                      className={`apply-day-btn${isSelected ? ' apply-day-on' : ''}${isCurrent ? ' apply-day-current' : ''}${day.isWeekend ? ' apply-day-weekend' : ''}`}
+                      onClick={() => toggleApplyDay(day.id)}
+                    >
+                      <div className="apply-day-name">{day.short}</div>
+                      <div className="apply-day-date">{day.date}</div>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="apply-row">
+                <button className="apply-quick-btn" onClick={() => setApplyDays(days.filter(d => !d.isWeekend && d.id !== editing?.dayId).map(d => d.id))}>Weekdays</button>
+                <button className="apply-quick-btn" onClick={() => setApplyDays(days.filter(d => d.isWeekend && d.id !== editing?.dayId).map(d => d.id))}>Weekends</button>
+                <button className="apply-quick-btn" onClick={() => setApplyDays(days.filter(d => d.id !== editing?.dayId).map(d => d.id))}>All Week</button>
+                <button className="apply-quick-btn" onClick={() => setApplyDays([])}>Clear</button>
+              </div>
+              {applyDays.length > 0 && (
+                <button className={`apply-confirm-btn${applied ? ' apply-done' : ''}`} onClick={applyToSelectedDays}>
+                  {applied ? '✓ Applied!' : `Apply to ${applyDays.length} day${applyDays.length > 1 ? 's' : ''}`}
+                </button>
+              )}
             </div>
 
             <button className="done-btn" onClick={() => setEditing(null)}>Done</button>
