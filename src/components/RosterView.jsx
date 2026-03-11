@@ -212,6 +212,11 @@ export default function RosterView() {
                               🕐 {convertTime(entry.startTime,timezone)}–{convertTime(entry.endTime,timezone)}
                             </div>
                           )}
+                          {entry.status==='WORKING'&&entry.isSplit&&entry.startTime2&&(
+                            <div className="time split-time-badge">
+                              🕐 {convertTime(entry.startTime2,timezone)}–{convertTime(entry.endTime2,timezone)}
+                            </div>
+                          )}
                           {entry.notes&&<div style={{fontSize:9,color:'#9ca3af',marginTop:2,fontStyle:'italic'}}>{entry.notes}</div>}
                         </td>
                       )

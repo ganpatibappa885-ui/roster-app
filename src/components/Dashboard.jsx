@@ -126,6 +126,13 @@ export default function Dashboard({ timezone }) {
                             {e.time}{e.note && <span className="tz-note"> {e.note}</span>}
                           </div>
                         )}
+                        {isWorking && entry.isSplit && entry.startTime2 && (
+                          <div className="time-range split-time-badge">
+                            {convertTime(entry.startTime2, timezone).time}
+                            <span className="time-sep"> → </span>
+                            {convertTime(entry.endTime2, timezone).time}
+                          </div>
+                        )}
                         {entry.notes && <div className="entry-notes">{entry.notes}</div>}
                       </td>
                     )

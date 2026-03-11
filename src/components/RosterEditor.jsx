@@ -96,6 +96,11 @@ export default function RosterEditor({ timezone }) {
                           {e.isOnCall && <span className="oc-dot"> OC</span>}
                         </div>
                         {s && <div className="edit-time">{s.time}<span className="arrow"> → </span>{en.time}</div>}
+                        {e.isSplit && e.startTime2 && (
+                          <div className="edit-time split-time-badge">
+                            {convertTime(e.startTime2, timezone).time}<span className="arrow"> → </span>{convertTime(e.endTime2, timezone).time}
+                          </div>
+                        )}
                       </td>
                     )
                   })}
@@ -181,6 +186,41 @@ export default function RosterEditor({ timezone }) {
                   <p className="tz-convert-note">
                     In {timezone}: {convertTime(entry.startTime, timezone).time} → {convertTime(entry.endTime, timezone).time}
                   </p>
+                )}
+
+                {/* SPLIT SHIFT */}
+                <div className="split-toggle-row">
+                  <button
+                    className={`split-toggle-btn${entry.isSplit ? ' split-toggle-on' : ''}`}
+                    onClick={() => update('isSplit', !entry.isSplit)}
+                  >
+                    {entry.isSplit ? '✕ Remove Split Shift' : '＋ Add Split Shift'}
+                  </button>
+                </div>
+                {entry.isSplit && (
+                  <>
+                    <div className="split-label">2nd Shift (IST)</div>
+                    <div className="time-row">
+                      <div className="time-field">
+                        <label>Start</label>
+                        <select value={entry.startTime2 || '7:00 PM'} onChange={e => update('startTime2', e.target.value)}>
+                          {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <span className="time-arrow">→</span>
+                      <div className="time-field">
+                        <label>End</label>
+                        <select value={entry.endTime2 || '10:00 PM'} onChange={e => update('endTime2', e.target.value)}>
+                          {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    {timezone !== 'IST' && entry.startTime2 && (
+                      <p className="tz-convert-note">
+                        In {timezone}: {convertTime(entry.startTime2, timezone).time} → {convertTime(entry.endTime2, timezone).time}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             )}
