@@ -68,7 +68,10 @@ export default function RosterView() {
       <div style={{background:'#fff',borderRadius:16,padding:'40px 32px',textAlign:'center',maxWidth:380,width:'100%'}}>
         <div style={{width:52,height:52,borderRadius:'50%',background:'#fee2e2',color:'#dc2626',fontSize:22,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px'}}>!</div>
         <h2 style={{fontSize:18,fontWeight:700,color:'#111827',marginBottom:8}}>Link Not Found</h2>
-        <p style={{color:'#6b7280',lineHeight:1.6,fontSize:14}}>{error || 'This roster link is invalid or expired.'}</p>
+        <p style={{color:'#6b7280',lineHeight:1.6,fontSize:14,marginBottom:20}}>{error || 'This roster link is invalid or expired.'}</p>
+        <button onClick={()=>{window.location.href=window.location.origin}} style={{padding:'10px 24px',background:'linear-gradient(135deg,#0f766e,#134e4a)',color:'#fff',border:'none',borderRadius:8,fontWeight:700,fontSize:14,cursor:'pointer'}}>
+          Go to App →
+        </button>
       </div>
     </div>
   )
