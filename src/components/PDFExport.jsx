@@ -190,7 +190,7 @@ export default function PDFExport({ timezone }) {
         1: { cellWidth: 36, halign: 'center' },
       }
       // Each TZ sub-column per day
-      const TZ_COL_W = 58
+      const TZ_COL_W = 72
       days.forEach((_, di) => {
         TZS.forEach((_, ti) => {
           colStyles[2 + di * 3 + ti] = { cellWidth: TZ_COL_W, halign: 'center', fontSize: 6.5 }
@@ -332,7 +332,8 @@ export default function PDFExport({ timezone }) {
         })
       }
 
-      doc.save(`Roster_${activeWeekId}.pdf`)
+      const safeLabel = weekLabel.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+      doc.save(`Roster_${safeLabel}.pdf`)
     } catch (err) {
       console.error('PDF export error:', err)
     } finally {
