@@ -644,6 +644,8 @@ body {
 .cell-shift {
   padding: 13px 16px;
   border-bottom: 1px solid var(--border);
+  height: 58px;
+  vertical-align: middle;
 }
 
 .cell-day {
@@ -652,6 +654,11 @@ body {
   border-left: 1px solid var(--border);
   text-align: center;
   vertical-align: middle;
+  height: 58px;
+}
+
+.cell-day:empty {
+  padding: 0;
 }
 
 .weekend-cell { background: rgba(204, 251, 241, 0.2) !important; }
