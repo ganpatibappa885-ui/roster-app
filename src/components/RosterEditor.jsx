@@ -192,7 +192,19 @@ export default function RosterEditor({ timezone }) {
                 <div className="split-toggle-row">
                   <button
                     className={`split-toggle-btn${entry.isSplit ? ' split-toggle-on' : ''}`}
-                    onClick={() => update('isSplit', !entry.isSplit)}
+                    onClick={() => {
+                      if (!entry.isSplit) {
+                        updateScheduleEntry(editing.engId, editing.dayId, {
+                          isSplit: true,
+                          startTime2: entry.startTime2 || '7:00 PM',
+                          endTime2: entry.endTime2 || '10:00 PM',
+                        })
+                      } else {
+                        updateScheduleEntry(editing.engId, editing.dayId, {
+                          isSplit: false, startTime2: null, endTime2: null,
+                        })
+                      }
+                    }}
                   >
                     {entry.isSplit ? '✕ Remove Split Shift' : '＋ Add Split Shift'}
                   </button>
