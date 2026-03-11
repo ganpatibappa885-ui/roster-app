@@ -94,6 +94,7 @@ export default function EngineerManager() {
           <h2 className="team-table-title">Team Members</h2>
           <span className="team-table-count">{engineers.length}</span>
         </div>
+        <div style={{overflowX:'auto', WebkitOverflowScrolling:'touch'}}>
         <div className="eng-list">
           <div className="eng-list-header">
             <span className="eng-col-name">Member</span>
@@ -158,6 +159,7 @@ export default function EngineerManager() {
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
 

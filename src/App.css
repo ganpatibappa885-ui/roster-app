@@ -253,9 +253,10 @@ body {
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   color: #fff;
-  min-width: 150px;
+  min-width: 0;
   text-align: center;
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 /* ── Timezone Switcher ── */
@@ -1347,7 +1348,8 @@ body {
   background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
   border-radius: var(--radius-md); padding: var(--space-3) var(--space-5);
   color: #fff; font-size: var(--text-sm); font-weight: var(--font-semibold);
-  white-space: nowrap; backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px); flex-shrink: 0; max-width: 220px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 .pub-section-title {
@@ -1761,7 +1763,7 @@ body {
   .topbar-divider  { display: none !important; }
   .tz-label        { display: none !important; }
   .tz-btn          { padding: 4px 10px !important; font-size: 11px !important; }
-  .week-label      { font-size: 12px !important; max-width: 120px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week-label      { font-size: 12px !important; white-space: nowrap; }
   .week-picker-btn { width: 28px !important; height: 28px !important; }
 
   /* ── Hide desktop tab nav, show bottom nav ── */
@@ -1844,8 +1846,8 @@ body {
   .eng-list-header { grid-template-columns: 1fr 100px 130px !important; padding: var(--space-3) var(--space-4) !important; }
 
   /* ── Publishing hero — stack & fix overflow ── */
-  .pub-hero { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-3) !important; padding: var(--space-5) !important; }
-  .pub-hero-week { white-space: normal !important; font-size: var(--text-xs) !important; padding: var(--space-2) var(--space-3) !important; }
+  .pub-hero { flex-direction: column !important; align-items: flex-start !important; gap: var(--space-3) !important; padding: var(--space-5) !important; overflow: hidden !important; }
+  .pub-hero-week { white-space: normal !important; font-size: var(--text-xs) !important; padding: var(--space-2) var(--space-3) !important; max-width: 100% !important; word-break: break-word; }
   .pub-title    { font-size: var(--text-xl) !important; }
   .pub-subtitle { font-size: var(--text-sm) !important; }
 
@@ -1873,5 +1875,5 @@ body {
   .dash-stats { grid-template-columns: repeat(2, 1fr) !important; }
   .stat-num   { font-size: 1.3rem !important; }
   .pub-analytics-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .week-label { max-width: 100px !important; }
+
 }
