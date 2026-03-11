@@ -1840,7 +1840,8 @@ body {
   .summary-table              { min-width: 580px; }
 
   /* ── TEAM PAGE FIX — allow horizontal scroll on eng list ── */
-  .team-table-card { overflow: visible !important; }
+  .team-table-card,
+  .page-card.no-pad.team-table-card { overflow: visible !important; }
   .team-table-card .eng-list { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
   .eng-list-row,
   .eng-list-header { grid-template-columns: 1fr 100px 130px !important; padding: var(--space-3) var(--space-4) !important; }
