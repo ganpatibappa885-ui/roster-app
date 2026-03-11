@@ -115,7 +115,7 @@ export default function PDFExport({ timezone }) {
   async function handleExport() {
     setExporting(true)
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' })
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [841, 1400] })
       const PW = doc.internal.pageSize.getWidth()
       const tz = timezone || 'IST'
 
@@ -146,8 +146,8 @@ export default function PDFExport({ timezone }) {
         mins = ((mins % 1440) + 1440) % 1440
         const hh = Math.floor(mins / 60), mm = mins % 60
         const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh
-        const ap = hh < 12 ? 'A' : 'P'
-        return `${h12}:${mm.toString().padStart(2,'0')}${ap}`
+        const ap = hh < 12 ? 'AM' : 'PM'
+        return `${h12}:${mm.toString().padStart(2,'0')} ${ap}`
       }
 
       const STATUS_COLORS = {
@@ -186,11 +186,11 @@ export default function PDFExport({ timezone }) {
       // jspdf-autotable supports a single head array so we'll use didDrawCell
       // to draw the two-row header manually and use a single head row for layout
       const colStyles = {
-        0: { cellWidth: 52, fontStyle: 'bold', halign: 'left' },
-        1: { cellWidth: 30, halign: 'center' },
+        0: { cellWidth: 60, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 36, halign: 'center' },
       }
       // Each TZ sub-column per day
-      const TZ_COL_W = 44
+      const TZ_COL_W = 58
       days.forEach((_, di) => {
         TZS.forEach((_, ti) => {
           colStyles[2 + di * 3 + ti] = { cellWidth: TZ_COL_W, halign: 'center', fontSize: 6.5 }
@@ -209,7 +209,7 @@ export default function PDFExport({ timezone }) {
             if (e.status === 'WORKING' && e.startTime) {
               const s = shiftTime(e.startTime, tz)
               const en = shiftTime(e.endTime, tz)
-              row.push(`${s}-${en}${e.isOnCall ? '🔔' : ''}`)
+              row.push(`${s} – ${en}${e.isOnCall ? ' 🔔' : ''}`)
             } else {
               row.push(STATUS_SHORT[e.status] || e.status)
             }
