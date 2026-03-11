@@ -146,7 +146,8 @@ export default function PDFExport({ timezone }) {
         mins = ((mins % 1440) + 1440) % 1440
         const hh = Math.floor(mins / 60), mm = mins % 60
         const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh
-        return `${h12}:${mm.toString().padStart(2,'0')} ${hh < 12 ? 'AM' : 'PM'}`
+        const ap = hh < 12 ? 'A' : 'P'
+        return `${h12}:${mm.toString().padStart(2,'0')}${ap}`
       }
 
       const STATUS_COLORS = {
@@ -185,11 +186,11 @@ export default function PDFExport({ timezone }) {
       // jspdf-autotable supports a single head array so we'll use didDrawCell
       // to draw the two-row header manually and use a single head row for layout
       const colStyles = {
-        0: { cellWidth: 45, fontStyle: 'bold', halign: 'left' },
-        1: { cellWidth: 28, halign: 'center' },
+        0: { cellWidth: 52, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 30, halign: 'center' },
       }
       // Each TZ sub-column per day
-      const TZ_COL_W = 38
+      const TZ_COL_W = 44
       days.forEach((_, di) => {
         TZS.forEach((_, ti) => {
           colStyles[2 + di * 3 + ti] = { cellWidth: TZ_COL_W, halign: 'center', fontSize: 6.5 }
