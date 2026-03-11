@@ -634,17 +634,17 @@ body {
 .roster-grid tbody tr:hover { background: var(--accent-soft); }
 
 .cell-name {
-  padding: 13px 16px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
 .cell-shift {
-  padding: 13px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border);
-  height: 58px;
   vertical-align: middle;
 }
 
@@ -654,7 +654,6 @@ body {
   border-left: 1px solid var(--border);
   text-align: center;
   vertical-align: middle;
-  height: 58px;
 }
 
 .cell-day:empty {
