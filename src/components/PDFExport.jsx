@@ -133,9 +133,23 @@ export default function PDFExport({ timezone }) {
       doc.text(weekLabel, 20, 27)
       doc.setTextColor(153, 246, 228)
       doc.setFontSize(8)
-      doc.text(`Times in ${tz} · Generated ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}`, PW - 20, 27, { align: 'right' })
+      doc.text(`Generated ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}`, PW - 20, 27, { align: 'right' })
 
-      // ─── MAIN ROSTER TABLE ────────────────────────────────────────────────
+      // ─── TZ HELPER ───────────────────────────────────────────────────────
+      const TZ_OFFSETS = { IST: 0, EST: -630, PST: -810 }
+      function shiftTime(istStr, tzKey) {
+        if (!istStr) return '—'
+        const [time, ampm] = istStr.trim().split(' ')
+        let [h, m] = time.split(':').map(Number)
+        if (ampm === 'PM' && h !== 12) h += 12
+        if (ampm === 'AM' && h === 12) h = 0
+        let mins = h * 60 + m + TZ_OFFSETS[tzKey]
+        mins = ((mins % 1440) + 1440) % 1440
+        const hh = Math.floor(mins / 60), mm = mins % 60
+        const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh
+        return `${h12}:${mm.toString().padStart(2,'0')} ${hh < 12 ? 'AM' : 'PM'}`
+      }
+
       const STATUS_COLORS = {
         WORKING:      { text: [22, 163, 74],   bg: [220, 252, 231] },
         WEEKLY_OFF:   { text: [8, 145, 178],   bg: [207, 250, 254] },
@@ -151,89 +165,133 @@ export default function PDFExport({ timezone }) {
         Evening:   { text: [124, 45, 18], bg: [255, 237, 213] },
       }
 
-      const head = [['Engineer', 'Shift', ...days.map(d => `${d.short}\n${d.date}`)]]
-      const body = engineers.map(eng => {
+      // ─── BUILD TABLE: Engineer | Shift | [Mon IST, Mon EST, Mon PST] ... ──
+      // Two header rows: row1 = day name spanning 3 cols, row2 = IST/EST/PST
+      const TZS = ['IST', 'EST', 'PST']
+      const TZ_COLORS = {
+        IST: { bg: [226, 239, 218], text: [0, 64, 0]   },
+        EST: { bg: [221, 234, 247], text: [0, 0, 100]  },
+        PST: { bg: [255, 248, 195], text: [75, 0, 130] },
+      }
+
+      // jspdf-autotable supports a single head array so we'll use didDrawCell
+      // to draw the two-row header manually and use a single head row for layout
+      const colStyles = {
+        0: { cellWidth: 38, fontStyle: 'bold', halign: 'left' },
+        1: { cellWidth: 22, halign: 'center' },
+      }
+      // Each TZ sub-column per day
+      const TZ_COL_W = 28
+      days.forEach((_, di) => {
+        TZS.forEach((_, ti) => {
+          colStyles[2 + di * 3 + ti] = { cellWidth: TZ_COL_W, halign: 'center', fontSize: 6.5 }
+        })
+      })
+
+      // Single header row (we'll overdraw day names on top)
+      const headRow = ['Engineer', 'Shift', ...days.flatMap(d => TZS.map(tz => tz))]
+
+      const bodyRows = engineers.map(eng => {
         const row = [eng.name, SHIFTS[eng.shift]?.label || eng.shift]
         days.forEach(day => {
           const e = schedule[eng.id]?.[day.id]
-          if (!e) { row.push('—'); return }
-          const st = e.status
-          if (st === 'WORKING' && e.startTime) {
-            const s = convertTime(e.startTime, tz)
-            const en = convertTime(e.endTime, tz)
-            row.push(`${STATUSES[st]?.label}\n${typeof s === 'object' ? s.time : s} – ${typeof en === 'object' ? en.time : en}${e.isOnCall ? '\n🔔 On Call' : ''}`)
-          } else {
-            row.push(STATUSES[st]?.label || st)
-          }
+          TZS.forEach(tz => {
+            if (!e) { row.push('—'); return }
+            if (e.status === 'WORKING' && e.startTime) {
+              row.push(`${shiftTime(e.startTime, tz)}\n–\n${shiftTime(e.endTime, tz)}${e.isOnCall ? '\n🔔' : ''}`)
+            } else {
+              row.push(STATUSES[e.status]?.label || e.status)
+            }
+          })
         })
         return row
       })
 
+      let mainTableEndY = 44
       autoTable(doc, {
-        head,
-        body,
-        startY: 44,
-        margin: { left: 15, right: 15 },
+        head: [headRow],
+        body: bodyRows,
+        startY: 52, // leave room for day-name overlay row
+        margin: { left: 10, right: 10 },
+        tableWidth: 'auto',
         styles: {
-          fontSize: 7.5,
-          cellPadding: { top: 5, bottom: 5, left: 5, right: 5 },
+          fontSize: 6.5,
+          cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
           valign: 'middle',
-          lineColor: [226, 232, 240],
-          lineWidth: 0.4,
-          font: 'helvetica',
+          lineColor: [200, 220, 215],
+          lineWidth: 0.3,
           overflow: 'linebreak',
+          minCellHeight: 20,
         },
         headStyles: {
           fillColor: [10, 138, 122],
           textColor: 255,
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 7,
           halign: 'center',
           valign: 'middle',
-          minCellHeight: 22,
+          minCellHeight: 14,
         },
-        columnStyles: {
-          0: { cellWidth: 40, fontStyle: 'bold', halign: 'left' },
-          1: { cellWidth: 28, halign: 'center' },
-          ...Object.fromEntries(days.map((_, i) => [i + 2, { cellWidth: 'auto', halign: 'center', minCellHeight: 28 }])),
-        },
+        columnStyles: colStyles,
         alternateRowStyles: { fillColor: [240, 253, 250] },
         didParseCell(data) {
-          if (data.section === 'head') return
+          if (data.section !== 'body') return
           const col = data.column.index
           const row = data.row.index
-          // Shift column color
+          const eng = engineers[row]
+          if (!eng) return
           if (col === 1) {
-            const eng = engineers[row]
-            const sc = SHIFT_COLORS[eng?.shift]
+            const sc = SHIFT_COLORS[eng.shift]
             if (sc) { data.cell.styles.fillColor = sc.bg; data.cell.styles.textColor = sc.text }
             return
           }
-          // Day columns
           if (col >= 2) {
-            const dayIdx = col - 2
-            const eng = engineers[row]
-            const e = eng ? schedule[eng.id]?.[days[dayIdx]?.id] : null
+            const dayIdx = Math.floor((col - 2) / 3)
+            const e = schedule[eng.id]?.[days[dayIdx]?.id]
             if (!e) return
             const sc = STATUS_COLORS[e.status]
             if (sc) { data.cell.styles.fillColor = sc.bg; data.cell.styles.textColor = sc.text }
-            if (days[dayIdx]?.isWeekend) data.cell.styles.fillColor = data.cell.styles.fillColor
           }
         },
         didDrawCell(data) {
-          // Weekend column header darker
+          // Draw TZ color band on header cells
           if (data.section === 'head' && data.column.index >= 2) {
-            const dayIdx = data.column.index - 2
-            if (days[dayIdx]?.isWeekend) {
-              doc.setFillColor(6, 78, 59)
-              doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
-              doc.setFontSize(8); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold')
-              const lines = data.cell.raw.split('\n')
-              doc.text(lines[0], data.cell.x + data.cell.width / 2, data.cell.y + 9, { align: 'center' })
-              doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(153, 246, 228)
-              doc.text(lines[1] || '', data.cell.x + data.cell.width / 2, data.cell.y + 17, { align: 'center' })
-            }
+            const tzIdx = (data.column.index - 2) % 3
+            const tz = TZS[tzIdx]
+            const tc = TZ_COLORS[tz]
+            doc.setFillColor(...tc.bg)
+            doc.rect(data.cell.x, data.cell.y, data.cell.width, data.cell.height, 'F')
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold')
+            doc.setTextColor(...tc.text)
+            doc.text(tz, data.cell.x + data.cell.width / 2, data.cell.y + data.cell.height / 2 + 2.5, { align: 'center' })
           }
+        },
+        didDrawPage(data) {
+          mainTableEndY = data.cursor?.y || mainTableEndY
+          // Draw day-name row above the TZ header
+          const tableLeft = data.settings.margin.left
+          const headerY = data.settings.startY - 14
+          let x = tableLeft
+          // Engineer col
+          doc.setFillColor(10, 138, 122)
+          doc.rect(x, headerY, colStyles[0].cellWidth, 14, 'F')
+          x += colStyles[0].cellWidth
+          // Shift col
+          doc.rect(x, headerY, colStyles[1].cellWidth, 14, 'F')
+          x += colStyles[1].cellWidth
+          // Day cols
+          days.forEach((day, di) => {
+            const dayW = TZ_COL_W * 3
+            const bg = day.isWeekend ? [6, 78, 59] : [10, 138, 122]
+            doc.setFillColor(...bg)
+            doc.rect(x, headerY, dayW, 14, 'F')
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 255, 255)
+            doc.text(`${day.short}  ${day.date}`, x + dayW / 2, headerY + 9, { align: 'center' })
+            // vertical dividers between days
+            doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.5)
+            doc.line(x, headerY, x, headerY + 14)
+            x += dayW
+          })
         },
       })
 
