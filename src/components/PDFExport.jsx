@@ -1,373 +1,619 @@
-import React, { useState } from 'react'
-import jsPDF from 'jspdf'
-import { useRosterStore } from '../store/rosterStore.js'
+import React, { useState, useMemo } from 'react'
+import { saveSnapshot } from '../utils/supabase.js'
+import { useRosterStore, STATUSES, SHIFTS } from '../store/rosterStore.js'
+import { convertTime, TZ_INFO } from '../utils/timezone.js'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
-const STATUSES = {
-  WORKING:        { label: 'Working',        short: null },
-  WEEKLY_OFF:     { label: 'Weekly Off',     short: 'W/Off' },
-  ANNUAL_LEAVE:   { label: 'Annual Leave',   short: 'A/Leave' },
-  SICK_LEAVE:     { label: 'Sick Leave',     short: 'Sick' },
-  COMP_OFF:       { label: 'Comp Off',       short: 'Comp Off' },
-  PUBLIC_HOLIDAY: { label: 'Public Holiday', short: 'P/Holiday' },
+const Icon = ({ d, size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d={d} />
+  </svg>
+)
+const Icons = {
+  users:    'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
+  check:    'M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4 12 14.01l-3-3',
+  calendar: 'M3 9h18M16 2v4M8 2v4M3 4h18a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
+  leave:    'M10 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M9 17H7M17 13H7M17 9h-3',
+  oncall:   'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.15 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.1 1.11h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z',
+  shift:    'M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83',
+  pdf:      'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
+  link:     'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  copy:     'M8 17.929H6c-1.105 0-2-.912-2-2.036V5.036C4 3.91 4.895 3 6 3h8c1.105 0 2 .911 2 2.036v1.866m-6 .17h8c1.105 0 2 .91 2 2.035v10.857C20 21.09 19.105 22 18 22h-8c-1.105 0-2-.911-2-2.036V9.107c0-1.124.895-2.036 2-2.036z',
+  open:     'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3',
 }
 
-// IST offset = +5:30 (330 mins)
-// EST offset = -5:00 (-300 mins)  → IST - 10:30
-// PST offset = -8:00 (-480 mins)  → IST - 13:30
-function convertFromIST(timeStr, tz) {
-  if (!timeStr) return ''
-  const [h, m] = timeStr.split(':').map(Number)
-  const istMins = h * 60 + m
-  let offset = 0
-  if (tz === 'EST') offset = -(10 * 60 + 30)
-  if (tz === 'PST') offset = -(13 * 60 + 30)
-  let mins = ((istMins + offset) % 1440 + 1440) % 1440
-  const hh = Math.floor(mins / 60)
-  const mm = mins % 60
-  const period = hh < 12 ? 'AM' : 'PM'
-  const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh
-  return `${h12}:${mm.toString().padStart(2, '0')} ${period}`
-}
+export default function PDFExport({ timezone }) {
+  const { engineers, activeWeekId, weeks } = useRosterStore()
+  const activeWeek = weeks?.[activeWeekId]
+  const days = activeWeek?.days || []
+  const schedule = activeWeek?.schedule || {}
+  const weekLabel = activeWeek?.weekLabel || ''
 
-function formatTime(t) { return convertFromIST(t, 'IST') }
+  const [exporting, setExporting] = useState(false)
+  const [includeSummary, setIncludeSummary] = useState(true)
+  const [includeLegend, setIncludeLegend] = useState(true)
+  const [shareLink, setShareLink] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [savingLink, setSavingLink] = useState(false)
+  const [linkIsRemote, setLinkIsRemote] = useState(false)
 
-function getTimeRange(entry, tz) {
-  if (!entry || entry.status !== 'WORKING') return null
-  const start = convertFromIST(entry.startTime, tz)
-  const end   = convertFromIST(entry.endTime,   tz)
-  let text = `${start} – ${end}`
-  if (entry.isSplit && entry.startTime2 && entry.endTime2) {
-    const s2 = convertFromIST(entry.startTime2, tz)
-    const e2 = convertFromIST(entry.endTime2,   tz)
-    text += `\n${s2} – ${e2}`
-  }
-  if (entry.onCall) text += ' [OC]'
-  return text
-}
+  const analytics = useMemo(() => {
+    let totalWorking = 0, totalLeave = 0, totalWO = 0, totalOnCall = 0
+    engineers.forEach(eng => {
+      days.forEach(day => {
+        const e = schedule[eng.id]?.[day.id]
+        if (!e) return
+        if (e.status === 'WORKING') totalWorking++
+        if (['ANNUAL_LEAVE','SICK_LEAVE','COMP_OFF'].includes(e.status)) totalLeave++
+        if (e.status === 'WEEKLY_OFF') totalWO++
+        if (e.isOnCall) totalOnCall++
+      })
+    })
+    return { totalWorking, totalLeave, totalWO, totalOnCall }
+  }, [engineers, days, schedule])
 
-export default function PDFExport() {
-  const { engineers, weeks, activeWeekId } = useRosterStore()
-  const [generating, setGenerating] = useState(false)
+  const dailyCoverage = useMemo(() => days.map(day => {
+    let working = 0, leave = 0, onCall = 0, weeklyOff = 0
+    engineers.forEach(eng => {
+      const e = schedule[eng.id]?.[day.id]
+      if (!e) return
+      if (e.status === 'WORKING') working++
+      if (['ANNUAL_LEAVE','SICK_LEAVE','COMP_OFF'].includes(e.status)) leave++
+      if (e.status === 'WEEKLY_OFF') weeklyOff++
+      if (e.isOnCall) onCall++
+    })
+    return { day, working, leave, onCall, weeklyOff }
+  }), [engineers, days, schedule])
 
-  const handleExport = () => {
-    setGenerating(true)
+  const shiftDist = useMemo(() => {
+    const dist = {}
+    Object.keys(SHIFTS).forEach(s => dist[s] = [])
+    engineers.forEach(eng => {
+      const workingDays = days.filter(d => schedule[eng.id]?.[d.id]?.status === 'WORKING')
+      if (workingDays.length > 0) {
+        const shift = schedule[eng.id]?.[workingDays[0].id]?.shift || eng.shift
+        if (dist[shift]) dist[shift].push(eng.name)
+      }
+    })
+    return dist
+  }, [engineers, days, schedule])
+
+  const leaveReport = useMemo(() => {
+    const rows = []
+    engineers.forEach(eng => {
+      days.forEach(day => {
+        const e = schedule[eng.id]?.[day.id]
+        if (e && ['ANNUAL_LEAVE','SICK_LEAVE','COMP_OFF','PUBLIC_HOL'].includes(e.status))
+          rows.push({ eng, day, status: e.status })
+      })
+    })
+    return rows
+  }, [engineers, days, schedule])
+
+  const onCallCoverage = useMemo(() => {
+    const rows = []
+    days.forEach(day => {
+      const ocEngs = engineers.filter(eng => schedule[eng.id]?.[day.id]?.isOnCall)
+      if (ocEngs.length > 0) rows.push({ day, engineers: ocEngs })
+    })
+    return rows
+  }, [engineers, days, schedule])
+
+  const summary = useMemo(() => engineers.map(eng => {
+    const counts = {}
+    Object.keys(STATUSES).forEach(s => counts[s] = 0)
+    let onCallDays = 0
+    days.forEach(day => {
+      const e = schedule[eng.id]?.[day.id]
+      if (e) { counts[e.status] = (counts[e.status] || 0) + 1; if (e.isOnCall) onCallDays++ }
+    })
+    return { eng, counts, onCallDays }
+  }), [engineers, days, schedule])
+
+  async function handleExport() {
+    setExporting(true)
     try {
-      const week   = weeks.find(w => w.id === activeWeekId) || weeks[0]
-      const days   = week?.days || []
-      const label  = week?.label || 'Roster'
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: [841, 1400] })
+      const PW = doc.internal.pageSize.getWidth()
+      const PH = doc.internal.pageSize.getHeight()
 
-      // ── Page setup ──────────────────────────────────────────────
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a3' })
-      const PW  = doc.internal.pageSize.getWidth()   // 1190.55 pt
-      const PH  = doc.internal.pageSize.getHeight()  //  841.89 pt
+      // ─── HEADER BANNER ───────────────────────────────────────────────────
+      doc.setFillColor(1, 77, 69)
+      doc.rect(0, 0, PW, 36, 'F')
+      doc.setFontSize(14); doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold')
+      doc.text('Roster Management', 20, 15)
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(153, 246, 228)
+      doc.text(weekLabel, 20, 27)
+      doc.text(`Generated ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}`, PW - 20, 27, { align: 'right' })
 
-      // Colors
-      const TEAL      = [13,  110, 100]
-      const TEAL_DARK = [5,   75,  68]
-      const TEAL_LIGHT= [220, 242, 240]
-      const TEAL_MED  = [180, 225, 220]
-      const WHITE     = [255, 255, 255]
-      const GRAY_ROW  = [248, 250, 249]
-      const GRAY_HEAD = [240, 245, 244]
-      const BORDER    = [180, 200, 198]
-      const WO_COL    = [8,   145, 178]   // blue  – weekly off
-      const LEAVE_COL = [220, 38,  38]    // red   – leave
-      const COMP_COL  = [219, 39,  119]   // pink  – comp off
-      const PH_COL    = [124, 58,  237]   // purple– public holiday
-      const TEAL_TEXT = [13,  110, 100]   // teal  – working time
+      // ─── TZ HELPER ───────────────────────────────────────────────────────
+      const TZ_OFFSETS = { IST: 0, EST: -630, PST: -810 }
+      function shiftTime(istStr, tzKey) {
+        if (!istStr) return '—'
+        const [time, ampm] = istStr.trim().split(' ')
+        let [h, m] = time.split(':').map(Number)
+        if (ampm === 'PM' && h !== 12) h += 12
+        if (ampm === 'AM' && h === 12) h = 0
+        let mins = h * 60 + m + TZ_OFFSETS[tzKey]
+        mins = ((mins % 1440) + 1440) % 1440
+        const hh = Math.floor(mins / 60), mm = mins % 60
+        const h12 = hh === 0 ? 12 : hh > 12 ? hh - 12 : hh
+        const ap = hh < 12 ? 'AM' : 'PM'
+        return `${h12}:${mm.toString().padStart(2,'0')} ${ap}`
+      }
 
-      // ── Column widths ────────────────────────────────────────────
-      const MARGIN  = 18
-      const ENG_W   = 90   // Engineer name
-      const SHIFT_W = 52   // Shift type
-      const TZ_W    = 30   // IST/EST/PST label
+      const TZS = ['IST', 'EST', 'PST']
+      const STATUS_SHORT = {
+        WORKING: 'Working', WEEKLY_OFF: 'W/Off', ANNUAL_LEAVE: 'A/Leave',
+        COMP_OFF: 'Comp Off', SICK_LEAVE: 'Sick', PUBLIC_HOL: 'P/Hol',
+      }
+      const STATUS_COLORS = {
+        WORKING:      { text: [22, 163, 74],   bg: [220, 252, 231] },
+        WEEKLY_OFF:   { text: [8, 145, 178],   bg: [207, 250, 254] },
+        ANNUAL_LEAVE: { text: [220, 38, 38],   bg: [254, 226, 226] },
+        COMP_OFF:     { text: [219, 39, 119],  bg: [252, 231, 243] },
+        SICK_LEAVE:   { text: [217, 119, 6],   bg: [254, 243, 199] },
+        PUBLIC_HOL:   { text: [124, 58, 237],  bg: [237, 233, 254] },
+      }
+      const TZ_COLORS = {
+        IST: { bg: [209, 250, 229], text: [6, 95, 70]   },
+        EST: { bg: [219, 234, 254], text: [30, 64, 175] },
+        PST: { bg: [237, 233, 254], text: [91, 33, 182] },
+      }
+      const SHIFT_COLORS = {
+        Morning:   { text: [6, 95, 70],   bg: [209, 250, 229] },
+        Night:     { text: [55, 48, 163], bg: [224, 231, 255] },
+        Afternoon: { text: [146, 64, 14], bg: [254, 243, 199] },
+        Evening:   { text: [124, 45, 18], bg: [255, 237, 213] },
+      }
+
+      // ─── LAYOUT CONSTANTS ─────────────────────────────────────────────────
+      const MARGIN  = 14
+      const ENG_W   = 72
+      const SHIFT_W = 40
+      const TZ_W    = 26
       const usable  = PW - MARGIN * 2 - ENG_W - SHIFT_W - TZ_W
-      const DAY_W   = usable / days.length   // width per day column
+      const DAY_W   = usable / days.length
+      const ROW_H   = 13
+      const GAP     = 1
+      const HEAD1_H = 18
+      const HEAD2_H = 13
 
-      // Row heights
-      const HEADER_H1 = 22   // title row
-      const HEADER_H2 = 18   // day name row
-      const SUB_ROW_H = 14   // each TZ sub-row
+      let y = 42
 
-      // ── Title / header ───────────────────────────────────────────
-      let y = MARGIN
-
-      // Title bar
-      doc.setFillColor(...TEAL_DARK)
-      doc.rect(MARGIN, y, PW - MARGIN * 2, HEADER_H1, 'F')
-      doc.setTextColor(...WHITE)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.text('Roster Management', MARGIN + 8, y + 14)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.text(label, MARGIN + 8, y + 20)
-      y += HEADER_H1
-
-      // Day header row
-      doc.setFillColor(...TEAL)
-      doc.rect(MARGIN, y, ENG_W + SHIFT_W + TZ_W, HEADER_H2, 'F')
-      doc.setTextColor(...WHITE)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(7)
+      // ─── HEADER ROW 1: Day names ──────────────────────────────────────────
+      doc.setFillColor(10, 138, 122)
+      doc.rect(MARGIN, y, ENG_W + SHIFT_W + TZ_W, HEAD1_H, 'F')
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7.5)
       doc.text('Engineer', MARGIN + 4, y + 12)
 
       let dx = MARGIN + ENG_W + SHIFT_W + TZ_W
       days.forEach(day => {
-        const isWE = day.label === 'Saturday' || day.label === 'Sunday'
-        doc.setFillColor(...(isWE ? TEAL_DARK : TEAL))
-        doc.rect(dx, y, DAY_W, HEADER_H2, 'F')
-        doc.setTextColor(...WHITE)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(6.5)
-        const dayLabel = `${day.label.slice(0, 3)}  ${day.id ? new Date(day.id + 'T12:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : ''}`
-        doc.text(dayLabel, dx + DAY_W / 2, y + 12, { align: 'center' })
+        const bg = day.isWeekend ? [6,78,59] : [10,138,122]
+        doc.setFillColor(...bg)
+        doc.rect(dx, y, DAY_W, HEAD1_H, 'F')
+        doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(7)
+        doc.text(`${day.short}  ${day.date}`, dx + DAY_W/2, y + 12, { align:'center' })
         dx += DAY_W
       })
-      y += HEADER_H2
+      y += HEAD1_H
 
-      // Column sub-headers (Shift | TZ labels)
-      doc.setFillColor(...GRAY_HEAD)
-      doc.rect(MARGIN, y, ENG_W + SHIFT_W + TZ_W, SUB_ROW_H, 'F')
-      doc.setTextColor(80, 80, 80)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(6)
+      // ─── HEADER ROW 2: sub-labels ─────────────────────────────────────────
+      doc.setFillColor(230, 246, 244)
+      doc.rect(MARGIN, y, ENG_W + SHIFT_W + TZ_W, HEAD2_H, 'F')
+      doc.setTextColor(10,138,122); doc.setFont('helvetica','bold'); doc.setFontSize(6)
       doc.text('Shift', MARGIN + ENG_W + 4, y + 9)
-      doc.text('TZ',    MARGIN + ENG_W + SHIFT_W + 4, y + 9)
+      doc.text('TZ', MARGIN + ENG_W + SHIFT_W + 4, y + 9)
 
       dx = MARGIN + ENG_W + SHIFT_W + TZ_W
       days.forEach(day => {
-        const isWE = day.label === 'Saturday' || day.label === 'Sunday'
-        doc.setFillColor(...(isWE ? TEAL_MED : TEAL_LIGHT))
-        doc.rect(dx, y, DAY_W, SUB_ROW_H, 'F')
-        doc.setTextColor(...TEAL_DARK)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(5.5)
-        doc.text('IST  |  EST  |  PST', dx + DAY_W / 2, y + 9, { align: 'center' })
+        const bg = day.isWeekend ? [220,240,238] : [230,246,244]
+        doc.setFillColor(...bg)
+        doc.rect(dx, y, DAY_W, HEAD2_H, 'F')
+        doc.setTextColor(80,80,80); doc.setFont('helvetica','normal'); doc.setFontSize(5.5)
+        doc.text('IST  ·  EST  ·  PST', dx + DAY_W/2, y + 8, { align:'center' })
         dx += DAY_W
       })
-      y += SUB_ROW_H
+      y += HEAD2_H
 
-      // ── Engineer rows ────────────────────────────────────────────
-      const sortedEngineers = [...engineers].sort((a, b) => a.name.localeCompare(b.name))
+      // ─── ENGINEER ROWS ────────────────────────────────────────────────────
+      const sortedEngs = [...engineers].sort((a,b) => a.name.localeCompare(b.name))
 
-      sortedEngineers.forEach((eng, ei) => {
-        const rowBg = ei % 2 === 0 ? WHITE : GRAY_ROW
-        const TZS   = ['IST', 'EST', 'PST']
-        const rowH  = SUB_ROW_H * 3 + 2  // total height for this engineer
+      sortedEngs.forEach((eng, ei) => {
+        const rowH = ROW_H * 3
+        const rowBg = ei % 2 === 0 ? [255,255,255] : [240,253,250]
 
-        // Check if we need a new page
-        if (y + rowH > PH - MARGIN) {
+        if (y + rowH + GAP > PH - MARGIN) {
           doc.addPage()
           y = MARGIN
         }
 
-        // Engineer name cell (spans 3 sub-rows)
+        // Engineer name (spans 3 sub-rows)
         doc.setFillColor(...rowBg)
         doc.rect(MARGIN, y, ENG_W, rowH, 'F')
-        doc.setDrawColor(...BORDER)
+        doc.setDrawColor(200,220,215); doc.setLineWidth(0.3)
         doc.rect(MARGIN, y, ENG_W, rowH)
-        doc.setTextColor(30, 30, 30)
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(7)
-        doc.text(eng.name, MARGIN + 4, y + rowH / 2 + 2)
+        doc.setTextColor(20,20,20); doc.setFont('helvetica','bold'); doc.setFontSize(7)
+        doc.text(eng.name, MARGIN + 4, y + rowH/2 + 2.5)
 
-        // Shift type cell (spans 3 sub-rows)
-        doc.setFillColor(...rowBg)
+        // Shift (spans 3 sub-rows)
+        const sc = SHIFT_COLORS[eng.shift] || { bg:[240,240,240], text:[60,60,60] }
+        doc.setFillColor(...sc.bg)
         doc.rect(MARGIN + ENG_W, y, SHIFT_W, rowH, 'F')
         doc.rect(MARGIN + ENG_W, y, SHIFT_W, rowH)
-        doc.setTextColor(80, 80, 80)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(6)
-        doc.text(eng.shift || '', MARGIN + ENG_W + 4, y + rowH / 2 + 2)
+        doc.setTextColor(...sc.text); doc.setFont('helvetica','bold'); doc.setFontSize(6)
+        doc.text(eng.shift || '', MARGIN + ENG_W + SHIFT_W/2, y + rowH/2 + 2, { align:'center' })
 
         // 3 TZ sub-rows
         TZS.forEach((tz, ti) => {
-          const sy = y + ti * SUB_ROW_H + ti * 0.5
+          const sy = y + ti * ROW_H
+          const tzc = TZ_COLORS[tz]
 
           // TZ label cell
-          doc.setFillColor(...(tz === 'IST' ? [220,242,240] : tz === 'EST' ? [219,234,254] : [237,233,254]))
-          doc.rect(MARGIN + ENG_W + SHIFT_W, sy, TZ_W, SUB_ROW_H, 'F')
-          doc.rect(MARGIN + ENG_W + SHIFT_W, sy, TZ_W, SUB_ROW_H)
-          doc.setTextColor(...(tz === 'IST' ? TEAL_DARK : tz === 'EST' ? [30,64,175] : [91,33,182]))
-          doc.setFont('helvetica', 'bold')
-          doc.setFontSize(5.5)
-          doc.text(tz, MARGIN + ENG_W + SHIFT_W + TZ_W / 2, sy + 9, { align: 'center' })
+          doc.setFillColor(...tzc.bg)
+          doc.rect(MARGIN + ENG_W + SHIFT_W, sy, TZ_W, ROW_H, 'F')
+          doc.rect(MARGIN + ENG_W + SHIFT_W, sy, TZ_W, ROW_H)
+          doc.setTextColor(...tzc.text); doc.setFont('helvetica','bold'); doc.setFontSize(5.5)
+          doc.text(tz, MARGIN + ENG_W + SHIFT_W + TZ_W/2, sy + ROW_H/2 + 2, { align:'center' })
 
-          // Day cells for this TZ row
+          // Day cells
           dx = MARGIN + ENG_W + SHIFT_W + TZ_W
           days.forEach(day => {
-            const isWE  = day.label === 'Saturday' || day.label === 'Sunday'
-            const entry = (day.engineers || {})[eng.id] || {}
-            const status = entry.status || 'WORKING'
+            const isWE  = day.isWeekend
+            const entry = schedule[eng.id]?.[day.id]
+            const status = entry?.status || 'WORKING'
+            const cellBg = isWE ? (ei%2===0 ? [245,251,250] : [235,248,246]) : rowBg
 
-            doc.setFillColor(...(isWE ? [245,250,249] : rowBg))
-            doc.rect(dx, sy, DAY_W, SUB_ROW_H, 'F')
-            doc.setDrawColor(...BORDER)
-            doc.rect(dx, sy, DAY_W, SUB_ROW_H)
+            doc.setFillColor(...cellBg)
+            doc.rect(dx, sy, DAY_W, ROW_H, 'F')
+            doc.rect(dx, sy, DAY_W, ROW_H)
 
             let cellText = ''
-            let textColor = [30, 30, 30]
+            let txtColor = [60,60,60]
 
             if (status === 'WORKING') {
-              const timeRange = getTimeRange(entry, tz)
-              if (timeRange) {
-                cellText = timeRange
-                textColor = tz === 'IST' ? TEAL_DARK : tz === 'EST' ? [30,64,175] : [91,33,182]
+              if (entry?.startTime) {
+                const s = shiftTime(entry.startTime, tz)
+                const e = shiftTime(entry.endTime, tz)
+                cellText = `${s} – ${e}${entry.isOnCall ? ' [OC]' : ''}`
+                txtColor = tzc.text
+                // split shift
+                if (entry.isSplit && entry.startTime2) {
+                  const s2 = shiftTime(entry.startTime2, tz)
+                  const e2 = shiftTime(entry.endTime2, tz)
+                  doc.setFont('helvetica','normal'); doc.setFontSize(5); doc.setTextColor(...tzc.text)
+                  doc.text(cellText, dx + DAY_W/2, sy + 5, { align:'center' })
+                  doc.text(`${s2} – ${e2}`, dx + DAY_W/2, sy + 10, { align:'center' })
+                  dx += DAY_W; return
+                }
+              } else {
+                cellText = '—'; txtColor = [180,180,180]
               }
             } else {
-              const shortMap = {
-                WEEKLY_OFF:     { text: 'W/Off',     color: WO_COL },
-                ANNUAL_LEAVE:   { text: 'A/Leave',   color: LEAVE_COL },
-                SICK_LEAVE:     { text: 'Sick',      color: LEAVE_COL },
-                COMP_OFF:       { text: 'Comp Off',  color: COMP_COL },
-                PUBLIC_HOLIDAY: { text: 'P/Holiday', color: PH_COL },
-              }
-              const s = shortMap[status]
-              if (s && ti === 1) { // only show label on EST row to avoid repetition
-                cellText  = s.text
-                textColor = s.color
-              } else if (s && ti !== 1) {
-                cellText  = '—'
-                textColor = [180, 180, 180]
+              if (ti === 1) {
+                const sc2 = STATUS_COLORS[status]
+                cellText = STATUS_SHORT[status] || status
+                txtColor = sc2 ? sc2.text : [60,60,60]
+                if (sc2) {
+                  doc.setFillColor(...sc2.bg)
+                  doc.rect(dx, sy, DAY_W, ROW_H, 'F')
+                  doc.rect(dx, sy, DAY_W, ROW_H)
+                }
+              } else {
+                cellText = '—'; txtColor = [180,180,180]
               }
             }
 
             doc.setFont('helvetica', status === 'WORKING' ? 'normal' : 'bold')
-            doc.setFontSize(5.5)
-            doc.setTextColor(...textColor)
-
-            // Handle split shift (two lines)
-            if (cellText.includes('\n')) {
-              const parts = cellText.split('\n')
-              doc.text(parts[0], dx + DAY_W / 2, sy + 5, { align: 'center' })
-              doc.text(parts[1], dx + DAY_W / 2, sy + 10, { align: 'center' })
-            } else {
-              doc.text(cellText, dx + DAY_W / 2, sy + 9, { align: 'center' })
-            }
-
+            doc.setFontSize(5.5); doc.setTextColor(...txtColor)
+            doc.text(cellText, dx + DAY_W/2, sy + ROW_H/2 + 2, { align:'center' })
             dx += DAY_W
           })
         })
 
-        // Bottom border for this engineer
-        doc.setDrawColor(...BORDER)
-        doc.setLineWidth(0.8)
+        // Bottom divider
+        doc.setDrawColor(150,200,195); doc.setLineWidth(0.6)
         doc.line(MARGIN, y + rowH, PW - MARGIN, y + rowH)
-        doc.setLineWidth(0.2)
-
-        y += rowH + 2
+        doc.setLineWidth(0.3)
+        y += rowH + GAP
       })
 
-      // ── Legend ───────────────────────────────────────────────────
+      // ─── LEGEND ───────────────────────────────────────────────────────────
       y += 6
-      doc.setFontSize(6)
-      doc.setFont('helvetica', 'bold')
-      doc.setTextColor(...TEAL_DARK)
-      doc.text('Legend:', MARGIN, y)
-      const legends = [
-        { text: 'W/Off = Weekly Off',      color: WO_COL },
-        { text: 'A/Leave = Annual Leave',  color: LEAVE_COL },
-        { text: 'Sick = Sick Leave',       color: LEAVE_COL },
-        { text: 'Comp Off = Compensatory', color: COMP_COL },
-        { text: 'P/Holiday = Public Hol.', color: PH_COL },
-        { text: '[OC] = On Call',          color: TEAL_DARK },
-      ]
-      let lx = MARGIN + 40
-      legends.forEach(l => {
-        doc.setTextColor(...l.color)
-        doc.setFont('helvetica', 'normal')
-        doc.text(l.text, lx, y)
-        lx += 120
-      })
-
-      // ── Page 2 — Engineer Summary ────────────────────────────────
-      doc.addPage()
-      y = MARGIN
-
-      doc.setFillColor(...TEAL_DARK)
-      doc.rect(MARGIN, y, PW - MARGIN * 2, 24, 'F')
-      doc.setTextColor(...WHITE)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.text('Engineer Summary', MARGIN + 8, y + 16)
-      y += 30
-
-      // Summary table header
-      const cols = ['Engineer', 'Shift', 'Working Days', 'Weekly Off', 'Annual Leave', 'Sick Leave', 'Comp Off', 'Public Hol.', 'On Call']
-      const cw   = [(PW - MARGIN * 2) * 0.14, (PW - MARGIN * 2) * 0.08]
-      const remW = (PW - MARGIN * 2 - cw[0] - cw[1]) / (cols.length - 2)
-
-      doc.setFillColor(...TEAL)
-      doc.rect(MARGIN, y, PW - MARGIN * 2, 16, 'F')
-      doc.setTextColor(...WHITE)
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(7)
-      let cx = MARGIN
-      cols.forEach((c, i) => {
-        const w = i === 0 ? cw[0] : i === 1 ? cw[1] : remW
-        doc.text(c, cx + 4, y + 11)
-        cx += w
-      })
-      y += 16
-
-      sortedEngineers.forEach((eng, ei) => {
-        const counts = { working: 0, weeklyOff: 0, annualLeave: 0, sickLeave: 0, compOff: 0, publicHol: 0, onCall: 0 }
-        days.forEach(day => {
-          const entry = (day.engineers || {})[eng.id] || {}
-          const s = entry.status || 'WORKING'
-          if (s === 'WORKING')        { counts.working++;   if (entry.onCall) counts.onCall++ }
-          if (s === 'WEEKLY_OFF')     counts.weeklyOff++
-          if (s === 'ANNUAL_LEAVE')   counts.annualLeave++
-          if (s === 'SICK_LEAVE')     counts.sickLeave++
-          if (s === 'COMP_OFF')       counts.compOff++
-          if (s === 'PUBLIC_HOLIDAY') counts.publicHol++
+      if (y < PH - 20) {
+        doc.setFontSize(6); doc.setFont('helvetica','bold'); doc.setTextColor(10,138,122)
+        doc.text('Legend:', MARGIN, y)
+        const legs = [
+          { t:'W/Off = Weekly Off', c:[8,145,178] }, { t:'A/Leave = Annual Leave', c:[220,38,38] },
+          { t:'Sick = Sick Leave', c:[217,119,6] }, { t:'Comp Off = Comp Off', c:[219,39,119] },
+          { t:'P/Hol = Public Holiday', c:[124,58,237] }, { t:'[OC] = On Call', c:[10,138,122] },
+        ]
+        let lx = MARGIN + 42
+        legs.forEach(l => {
+          doc.setTextColor(...l.c); doc.setFont('helvetica','normal')
+          doc.text(l.t, lx, y); lx += 118
         })
+      }
 
-        doc.setFillColor(...(ei % 2 === 0 ? WHITE : GRAY_ROW))
-        doc.rect(MARGIN, y, PW - MARGIN * 2, 14, 'F')
-        doc.setDrawColor(...BORDER)
-        doc.rect(MARGIN, y, PW - MARGIN * 2, 14)
+      // ─── PAGE 2: SUMMARY TABLE ────────────────────────────────────────────
+      if (includeSummary) {
+        doc.addPage()
+        doc.setFillColor(1, 77, 69)
+        doc.rect(0, 0, PW, 36, 'F')
+        doc.setFontSize(14); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold')
+        doc.text('Engineer Summary', 20, 15)
+        doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(153,246,228)
+        doc.text(weekLabel, 20, 27)
 
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(7)
-        doc.setTextColor(30, 30, 30)
-
-        const vals = [eng.name, eng.shift || '', counts.working, counts.weeklyOff, counts.annualLeave, counts.sickLeave, counts.compOff, counts.publicHol, counts.onCall]
-        cx = MARGIN
-        vals.forEach((v, i) => {
-          const w = i === 0 ? cw[0] : i === 1 ? cw[1] : remW
-          doc.setFont('helvetica', i < 2 ? 'bold' : 'normal')
-          doc.text(String(v), cx + 4, y + 9)
-          cx += w
+        const sumHeaders = [['Engineer','Shift','Working','Weekly Off','Annual Leave','Comp Off','Sick Leave','Public Hol','On Call']]
+        const sumRows = summary.map(({eng,counts,onCallDays}) => [
+          eng.name, SHIFTS[eng.shift]?.label || eng.shift,
+          counts.WORKING||0, counts.WEEKLY_OFF||0, counts.ANNUAL_LEAVE||0,
+          counts.COMP_OFF||0, counts.SICK_LEAVE||0, counts.PUBLIC_HOL||0, onCallDays,
+        ])
+        autoTable(doc, {
+          head: sumHeaders, body: sumRows, startY: 44,
+          margin: { left:20, right:20 },
+          styles: { fontSize:9, cellPadding:5, valign:'middle', halign:'center', lineColor:[226,232,240], lineWidth:0.4 },
+          headStyles: { fillColor:[10,138,122], textColor:255, fontStyle:'bold' },
+          alternateRowStyles: { fillColor:[240,253,250] },
+          columnStyles: { 0:{fontStyle:'bold',halign:'left',cellWidth:45}, 1:{halign:'left',cellWidth:35} },
         })
-        y += 14
-      })
+      }
 
-      // Save
-      const filename = `Roster_${label.replace(/\s+/g, '_')}.pdf`
-      doc.save(filename)
+      const safeLabel = weekLabel.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+      doc.save(`Roster_${safeLabel}.pdf`)
     } catch (err) {
-      console.error('PDF error:', err)
-      alert('PDF generation failed: ' + err.message)
+      console.error('PDF export error:', err)
+      alert('PDF error: ' + err.message)
     } finally {
-      setGenerating(false)
+      setExporting(false)
     }
   }
 
+  async function generateShareLink() {
+    setSavingLink(true)
+    const snapshot = {
+      weekLabel, generatedAt: new Date().toISOString(),
+      days: days.map(d => ({id:d.id,label:d.label,short:d.short,date:d.date,isWeekend:d.isWeekend})),
+      engineers: engineers.map(e => ({id:e.id,name:e.name,role:e.role,shift:e.shift})),
+      schedule,
+    }
+    const { id, remote } = await saveSnapshot(snapshot)
+    setLinkIsRemote(remote)
+    setShareLink(`${window.location.origin}${window.location.pathname}#/view/${id}`)
+    setCopied(false)
+    setSavingLink(false)
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(shareLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
-    <div className="pdf-export-section">
-      <div className="pdf-header">
-        <h3>PDF Export</h3>
-        <p>Download the full roster with IST · EST · PST times for all engineers</p>
+    <div className="page-container pub-page">
+      <header className="pub-hero">
+        <div className="pub-hero-main">
+          <h1 className="pub-title">Publishing Center</h1>
+          <p className="pub-subtitle">Export reports or generate a shareable roster link</p>
+        </div>
+        <div className="pub-hero-week">{weekLabel}</div>
+      </header>
+
+      <section>
+        <h2 className="pub-section-title">
+          <span className="pub-section-icon" style={{background:'#d1fae5',color:'#059669'}}><Icon d={Icons.check} size={15}/></span>
+          Weekly Analytics
+        </h2>
+        <div className="pub-analytics-grid">
+          {[
+            {label:'Engineers', value:engineers.length, icon:Icons.users, color:'#0ea5e9', bg:'#e0f2fe'},
+            {label:'Working',   value:analytics.totalWorking, icon:Icons.check, color:'#059669', bg:'#d1fae5'},
+            {label:'On Leave',  value:analytics.totalLeave,   icon:Icons.leave, color:'#dc2626', bg:'#fee2e2'},
+            {label:'Weekly Off',value:analytics.totalWO,      icon:Icons.calendar, color:'#0d9488', bg:'#ccfbf1'},
+            {label:'On Call',   value:analytics.totalOnCall,  icon:Icons.oncall, color:'#7c3aed', bg:'#ede9fe'},
+          ].map(c => (
+            <div key={c.label} className="pub-analytics-card">
+              <div className="pub-analytics-icon" style={{background:c.bg,color:c.color}}><Icon d={c.icon} size={18}/></div>
+              <div className="pub-analytics-num" style={{color:c.color}}>{c.value}</div>
+              <div className="pub-analytics-lbl">{c.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="pub-section-title">
+          <span className="pub-section-icon" style={{background:'#dbeafe',color:'#2563eb'}}><Icon d={Icons.calendar} size={15}/></span>
+          Daily Coverage Report
+        </h2>
+        <div className="pub-daily-grid">
+          {dailyCoverage.map(({day,working,leave,onCall,weeklyOff}) => {
+            const pct = engineers.length > 0 ? Math.round((working/engineers.length)*100) : 0
+            const low = pct < 50
+            return (
+              <div key={day.id} className={`pub-day-card${day.isWeekend?' pub-day-weekend':''}`}>
+                <div className="pub-day-header"><span className="pub-day-name">{day.short}</span><span className="pub-day-date">{day.date}</span></div>
+                <div className="pub-day-bar-wrap">
+                  <div className="pub-day-bar"><div className="pub-day-bar-fill" style={{width:`${pct}%`,background:low?'#ef4444':'#10b981'}}/></div>
+                  <span className="pub-day-pct" style={{color:low?'#dc2626':'#059669'}}>{pct}%</span>
+                </div>
+                <div className="pub-day-stats">
+                  <div className="pub-day-stat"><span style={{color:'#059669'}}>Working</span><strong>{working}</strong></div>
+                  {leave>0 && <div className="pub-day-stat"><span style={{color:'#dc2626'}}>Leave</span><strong>{leave}</strong></div>}
+                  {onCall>0 && <div className="pub-day-stat"><span style={{color:'#7c3aed'}}>On Call</span><strong>{onCall}</strong></div>}
+                  {weeklyOff>0 && <div className="pub-day-stat"><span style={{color:'#0d9488'}}>Off</span><strong>{weeklyOff}</strong></div>}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <div className="pub-two-col">
+        <section>
+          <h2 className="pub-section-title">
+            <span className="pub-section-icon" style={{background:'#fef3c7',color:'#d97706'}}><Icon d={Icons.shift} size={15}/></span>
+            Shift Distribution
+          </h2>
+          <div className="page-card pub-shift-card">
+            {Object.entries(shiftDist).map(([key,names]) => {
+              const sh = SHIFTS[key]
+              return (
+                <div key={key} className="pub-shift-row">
+                  <div className="pub-shift-left">
+                    <span className="shift-badge" style={{background:sh.bg,color:sh.color}}>{sh.label}</span>
+                    <span className="pub-shift-count">{names.length} engineer{names.length!==1?'s':''}</span>
+                  </div>
+                  <div className="pub-shift-names">
+                    {names.length>0 ? names.map(n=><span key={n} className="pub-name-chip">{n}</span>) : <span className="pub-empty">None assigned</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+        <section>
+          <h2 className="pub-section-title">
+            <span className="pub-section-icon" style={{background:'#fee2e2',color:'#dc2626'}}><Icon d={Icons.leave} size={15}/></span>
+            Leave Report
+          </h2>
+          <div className="page-card pub-leave-card">
+            {leaveReport.length===0 ? <div className="pub-empty-state">No leave entries this week</div> : (
+              <div className="pub-leave-list">
+                {leaveReport.map(({eng,day,status},i) => {
+                  const s = STATUSES[status]
+                  return (
+                    <div key={i} className="pub-leave-row">
+                      <div className="eng-avatar-sm" style={{background:`linear-gradient(135deg,${s.color},${s.color}aa)`}}>{eng.name[0]}</div>
+                      <div className="pub-leave-info"><span className="pub-leave-name">{eng.name}</span><span className="pub-leave-day">{day.label} · {day.date}</span></div>
+                      <span className="count-pill" style={{background:s.bg,color:s.color}}>{s.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
-      <button
-        className="btn-primary pdf-btn"
-        onClick={handleExport}
-        disabled={generating}
-      >
-        {generating ? 'Generating…' : '⬇ Generate & Download PDF'}
-      </button>
+
+      <section>
+        <h2 className="pub-section-title">
+          <span className="pub-section-icon" style={{background:'#ede9fe',color:'#7c3aed'}}><Icon d={Icons.oncall} size={15}/></span>
+          On Call Coverage
+        </h2>
+        <div className="page-card">
+          {onCallCoverage.length===0 ? <div className="pub-empty-state">No on-call assignments this week</div> : (
+            <div className="pub-oncall-grid">
+              {onCallCoverage.map(({day,engineers:ocEngs}) => (
+                <div key={day.id} className="pub-oncall-card">
+                  <div className="pub-oncall-day"><span className="pub-oncall-day-name">{day.label}</span><span className="pub-oncall-day-date">{day.date}</span></div>
+                  <div className="pub-oncall-engineers">
+                    {ocEngs.map(eng=>(
+                      <div key={eng.id} className="pub-oncall-eng">
+                        <div className="eng-avatar-sm" style={{width:26,height:26,fontSize:11}}>{eng.name[0]}</div>
+                        <span>{eng.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="pub-two-col">
+        <section>
+          <h2 className="pub-section-title">
+            <span className="pub-section-icon" style={{background:'#fce7f3',color:'#db2777'}}><Icon d={Icons.pdf} size={15}/></span>
+            PDF Export
+          </h2>
+          <div className="page-card pub-pdf-card">
+            <p className="card-desc">Export a full PDF roster — each engineer shows 3 rows (IST / EST / PST) with an optional Engineer Summary page.</p>
+            <div className="pub-pdf-options">
+              <label className="pub-checkbox-row"><input type="checkbox" checked={includeSummary} onChange={e=>setIncludeSummary(e.target.checked)}/><span>Include Engineer Summary page</span></label>
+              <label className="pub-checkbox-row"><input type="checkbox" checked={includeLegend} onChange={e=>setIncludeLegend(e.target.checked)}/><span>Include Legend &amp; Timezone page</span></label>
+            </div>
+            <button className="pub-pdf-btn" onClick={handleExport} disabled={exporting}>
+              <Icon d={Icons.pdf} size={16}/>
+              {exporting ? 'Generating PDF...' : 'Generate & Download PDF'}
+            </button>
+          </div>
+        </section>
+        <section>
+          <h2 className="pub-section-title">
+            <span className="pub-section-icon" style={{background:'#ccfbf1',color:'#0d9488'}}><Icon d={Icons.link} size={15}/></span>
+            Share Roster Link
+          </h2>
+          <div className="page-card pub-share-card">
+            <p className="card-desc">Generate a <strong>read-only link</strong> for engineers. The view page includes a full <strong>IST / EST / PST timezone switcher</strong> so engineers can see times in their local timezone.</p>
+            {!shareLink ? (
+              <button className="pub-share-btn" onClick={generateShareLink} disabled={savingLink}>
+                <Icon d={Icons.link} size={16}/>
+                {savingLink ? 'Saving snapshot…' : 'Generate Shareable Link'}
+              </button>
+            ) : (
+              <div className="pub-link-result">
+                <div className="pub-link-label" style={{display:'flex',alignItems:'center',gap:8}}>
+                  Shareable Link
+                  <span style={{
+                    fontSize:'11px', fontWeight:600, padding:'2px 8px', borderRadius:20,
+                    background: linkIsRemote ? '#dcfce7' : '#fef3c7',
+                    color: linkIsRemote ? '#166534' : '#92400e',
+                  }}>
+                    {linkIsRemote ? '🌐 Works on any device' : '⚠️ This device only'}
+                  </span>
+                </div>
+                <div className="pub-link-box"><span className="pub-link-url">{shareLink.length>55?shareLink.slice(0,55)+'…':shareLink}</span></div>
+                <div className="pub-link-actions">
+                  <button className="btn-primary" onClick={copyLink}><Icon d={Icons.copy} size={14}/>{copied?'Copied!':'Copy Link'}</button>
+                  <button className="btn-secondary" onClick={()=>window.open(shareLink,'_blank')}><Icon d={Icons.open} size={14}/>Open Preview</button>
+                  <button className="btn-secondary" onClick={()=>{setShareLink(null);setLinkIsRemote(false)}}>Regenerate</button>
+                </div>
+                <p className="pub-link-note">Snapshot generated on {new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section>
+        <h2 className="pub-section-title">
+          <span className="pub-section-icon" style={{background:'#e0e7ff',color:'#4f46e5'}}><Icon d={Icons.users} size={15}/></span>
+          Engineer Summary — {weekLabel}
+        </h2>
+        <div className="page-card no-pad">
+          <div className="summary-table-wrap">
+            <table className="summary-table">
+              <thead><tr>
+                <th>Engineer</th><th>Shift</th>
+                {Object.values(STATUSES).map(s=><th key={s.label}>{s.label}</th>)}
+                <th>On Call Days</th>
+              </tr></thead>
+              <tbody>
+                {summary.map(({eng,counts,onCallDays},idx)=>(
+                  <tr key={eng.id} className={idx%2===0?'row-even':'row-odd'}>
+                    <td className="summary-eng-name"><div className="eng-avatar-sm">{eng.name[0]}</div>{eng.name}</td>
+                    <td><span className="shift-badge" style={{background:SHIFTS[eng.shift]?.bg,color:SHIFTS[eng.shift]?.color}}>{SHIFTS[eng.shift]?.label}</span></td>
+                    {Object.entries(STATUSES).map(([key,s])=>(
+                      <td key={key} className="summary-count">
+                        {counts[key]>0?<span className="count-pill" style={{background:s.bg,color:s.color}}>{counts[key]}</span>:<span className="count-zero">—</span>}
+                      </td>
+                    ))}
+                    <td className="summary-count">
+                      {onCallDays>0?<span className="count-pill" style={{background:'#cffafe',color:'#0891b2'}}>{onCallDays}</span>:<span className="count-zero">—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
