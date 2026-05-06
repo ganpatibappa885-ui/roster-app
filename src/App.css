@@ -123,7 +123,7 @@ body {
    TOPBAR — Dark blue, matches everything
 ════════════════════════════════════════ */
 .topbar {
-  background: linear-gradient(135deg, #071633 0%, #0d2454 45%, #163d8f 100%);
+  background: linear-gradient(135deg, #0d2454 0%, #163d8f 55%, #2149a6 100%) !important;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   padding: 0 var(--space-10);
   display: flex; align-items: center; justify-content: space-between;
@@ -315,7 +315,7 @@ body {
 .day-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); transition: all var(--t-base); }
 .day-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); transform: translateY(-2px); }
 .day-card-weekend { border-color: var(--blue-200); background: linear-gradient(180deg, var(--blue-50) 0%, var(--bg-card) 100%); }
-.day-card-header { padding: var(--space-3) var(--space-4); background: #1f4699; border-bottom: 1px solid var(--border); }
+.day-card-header { padding: var(--space-3) var(--space-4); background: linear-gradient(135deg, #2149a6 0%, #2958c8 100%); border-bottom: 1px solid var(--border); }
 .day-card-name { font-size: var(--text-base); font-weight: var(--font-bold); color: #fff; display: block; }
 .day-card-date { font-size: 10px; color: var(--blue-200); margin-top: 2px; }
 .day-card-body { padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: 6px; }
