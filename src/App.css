@@ -405,7 +405,7 @@ body {
 .col-day   { min-width: 128px; text-align: center !important; }
 .day-th-label { font-weight: var(--font-semibold); }
 .day-th-date  { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
-.weekend-hdr  { background: linear-gradient(180deg, #12255a 0%, #0d1a45 100%) !important; !important; }
+.weekend-hdr  { background: linear-gradient(180deg, #12255a 0%, #0d1a45 100%) !important; }
 
 .row-even { background: var(--bg-card); }
 .row-odd  { background: #f8f9ff; }
