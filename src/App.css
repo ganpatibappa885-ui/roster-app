@@ -392,7 +392,7 @@ body {
 .roster-grid { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
 
 .roster-grid thead th {
-  background: linear-gradient(180deg, var(--dark-800) 0%, var(--dark-900) 100%);
+  background: linear-gradient(180deg, #1e3a7a 0%, #162d62 100%);
   color: rgba(255,255,255,0.95); padding: 14px 16px;
   text-align: left; font-weight: var(--font-semibold);
   font-size: var(--text-sm); letter-spacing: 0.03em; position: sticky; top: 0;
@@ -405,7 +405,7 @@ body {
 .col-day   { min-width: 128px; text-align: center !important; }
 .day-th-label { font-weight: var(--font-semibold); }
 .day-th-date  { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
-.weekend-hdr  { background: linear-gradient(180deg, var(--dark-950) 0%, #02041a 100%) !important; }
+.weekend-hdr  { background: linear-gradient(180deg, #12255a 0%, #0d1a45 100%) !important; !important; }
 
 .row-even { background: var(--bg-card); }
 .row-odd  { background: #f8f9ff; }
@@ -471,8 +471,8 @@ body {
 .editor-grid-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .editor-grid { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
 
-.col-eng-hdr { padding: 14px 16px; background: linear-gradient(180deg, var(--dark-800) 0%, var(--dark-900) 100%); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); min-width: 160px; position: sticky; top: 0; letter-spacing: 0.02em; }
-.col-day-hdr { padding: 14px 12px; background: linear-gradient(180deg, var(--dark-800) 0%, var(--dark-900) 100%); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); text-align: center; min-width: 115px; position: sticky; top: 0; letter-spacing: 0.02em; }
+.col-eng-hdr { padding: 14px 16px; background: linear-gradient(180deg, #1e3a7a 0%, #162d62 100%); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); min-width: 160px; position: sticky; top: 0; letter-spacing: 0.02em; }
+.col-day-hdr { padding: 14px 12px; background: linear-gradient(180deg, #1e3a7a 0%, #162d62 100%); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); text-align: center; min-width: 115px; position: sticky; top: 0; letter-spacing: 0.02em; }
 .day-date-small { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
 
 .cell-eng-name  { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
