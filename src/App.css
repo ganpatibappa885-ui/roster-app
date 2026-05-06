@@ -123,18 +123,12 @@ body {
    TOPBAR — Dark blue, matches everything
 ════════════════════════════════════════ */
 .topbar {
-  background: linear-gradient(135deg, #0f2c6d 0%, #163d8f 45%, #1d4fb8 100%);
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(135deg, #071633 0%, #0d2454 45%, #163d8f 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
   padding: 0 var(--space-10);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-8);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  height: 64px;
-  box-shadow: 0 4px 20px rgba(15, 44, 109, 0.22);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-8); position: sticky; top: 0; z-index: 50;
+  height: 64px; box-shadow: var(--shadow-blue-lg);
 }
 
 /* Brand gradient accent line at top */
@@ -242,7 +236,7 @@ body {
 .dash-hero {
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: var(--space-8); padding: var(--space-8);
-  background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 50%, var(--blue-800) 100%);
+  background: linear-gradient(135deg, #2149a6 0%, #2958c8 55%, #4b79e6 100%);
   border: 1px solid rgba(59,111,224,0.25);
   border-radius: var(--radius-xl); box-shadow: var(--shadow-blue-lg);
   position: relative; overflow: hidden;
@@ -280,7 +274,7 @@ body {
 ════════════════════════════════════════ */
 .roster-grid-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .roster-grid { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
-.roster-grid thead th { background: var(--blue-800); color: rgba(255,255,255,0.95); padding: 14px 16px; text-align: left; font-weight: var(--font-semibold); font-size: var(--text-sm); letter-spacing: 0.03em; position: sticky; top: 0; }
+.roster-grid thead th { background: #1f4699; color: rgba(255,255,255,0.95); padding: 14px 16px; text-align: left; font-weight: var(--font-semibold); font-size: var(--text-sm); letter-spacing: 0.03em; position: sticky; top: 0; }
 .roster-grid thead th:first-child { border-radius: var(--radius-lg) 0 0 0; }
 .roster-grid thead th:last-child  { border-radius: 0 var(--radius-lg) 0 0; }
 .col-eng   { min-width: 180px; }
@@ -288,7 +282,7 @@ body {
 .col-day   { min-width: 128px; text-align: center !important; }
 .day-th-label { font-weight: var(--font-semibold); }
 .day-th-date  { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
-.weekend-hdr  { background: var(--blue-950) !important; }
+.weekend-hdr  { background: #183b85 !important; }
 .row-even { background: var(--bg-card); }
 .row-odd  { background: var(--blue-50); }
 .roster-grid tbody tr { transition: background var(--t-fast); }
@@ -298,7 +292,7 @@ body {
 .cell-shift { padding: 10px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .cell-day   { padding: 10px 12px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); text-align: center; vertical-align: middle; }
 .cell-day:empty { padding: 0; }
-.weekend-cell { background: rgba(212,230,255,0.25) !important; }
+.weekend-cell { background: rgba(222,233,255,0.45) !important; }
 
 .eng-avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--blue-600), var(--blue-400)); color: #fff; font-size: var(--text-sm); font-weight: var(--font-bold); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(32,72,192,0.35); }
 .eng-name   { font-weight: var(--font-semibold); font-size: var(--text-base); color: var(--text); letter-spacing: -0.01em; }
@@ -321,7 +315,7 @@ body {
 .day-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); transition: all var(--t-base); }
 .day-card:hover { box-shadow: var(--shadow-md); border-color: var(--border-strong); transform: translateY(-2px); }
 .day-card-weekend { border-color: var(--blue-200); background: linear-gradient(180deg, var(--blue-50) 0%, var(--bg-card) 100%); }
-.day-card-header { padding: var(--space-3) var(--space-4); background: var(--blue-800); border-bottom: 1px solid var(--border); }
+.day-card-header { padding: var(--space-3) var(--space-4); background: #1f4699; border-bottom: 1px solid var(--border); }
 .day-card-name { font-size: var(--text-base); font-weight: var(--font-bold); color: #fff; display: block; }
 .day-card-date { font-size: 10px; color: var(--blue-200); margin-top: 2px; }
 .day-card-body { padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: 6px; }
@@ -337,8 +331,8 @@ body {
 .search-input:focus { border-color: var(--blue-400); box-shadow: 0 0 0 3px var(--accent-glow); }
 .editor-grid-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .editor-grid { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
-.col-eng-hdr { padding: 14px 16px; background: var(--blue-800); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); min-width: 160px; position: sticky; top: 0; letter-spacing: 0.02em; }
-.col-day-hdr { padding: 14px 12px; background: var(--blue-800); color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); text-align: center; min-width: 115px; position: sticky; top: 0; letter-spacing: 0.02em; }
+.col-eng-hdr { padding: 14px 16px; background: #1f4699; color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); min-width: 160px; position: sticky; top: 0; letter-spacing: 0.02em; }
+.col-day-hdr { padding: 14px 12px; background: #1f4699; color: rgba(255,255,255,0.95); font-size: var(--text-sm); font-weight: var(--font-semibold); text-align: center; min-width: 115px; position: sticky; top: 0; letter-spacing: 0.02em; }
 .day-date-small { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
 .cell-eng-name  { padding: 13px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .cell-editable  { padding: 10px 12px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); text-align: center; cursor: pointer; vertical-align: middle; transition: background var(--t-fast); }
@@ -437,7 +431,7 @@ body {
    TEAM PAGE
 ════════════════════════════════════════ */
 .team-page { padding-top: var(--space-6); }
-.team-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); padding: var(--space-6) var(--space-8); background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 60%, var(--blue-800) 100%); border: 1px solid rgba(59,111,224,0.2); border-radius: var(--radius-xl); box-shadow: var(--shadow-blue); position: relative; overflow: hidden; }
+.team-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); padding: var(--space-6) var(--space-8); background: linear-gradient(135deg, #071633 0%, #0d2454 45%, #163d8f 100%); border: 1px solid rgba(59,111,224,0.2); border-radius: var(--radius-xl); box-shadow: var(--shadow-blue); position: relative; overflow: hidden; }
 .team-hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(59,111,224,0.12) 0%, transparent 70%); pointer-events: none; }
 .team-hero-main { flex: 1; position: relative; z-index: 1; }
 .team-title    { font-size: var(--text-2xl); font-weight: var(--font-extrabold); color: #fff; letter-spacing: -0.04em; }
@@ -452,7 +446,7 @@ body {
 .team-table-card  { overflow: hidden; }
 .team-table-card .eng-list-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .team-table-card .eng-list { overflow-x: auto; }
-.team-table-header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-6); background: var(--blue-800); color: rgba(255,255,255,0.95); }
+.team-table-header { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-6); background: #1f4699; color: rgba(255,255,255,0.95); }
 .team-table-title  { font-size: var(--text-md); font-weight: var(--font-semibold); }
 .team-table-count  { background: rgba(255,255,255,0.15); padding: 3px 11px; border-radius: 999px; font-size: var(--text-sm); font-weight: var(--font-bold); }
 .week-label-row { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
@@ -499,7 +493,7 @@ body {
 .export-btn { align-self: flex-start; padding: 12px 28px; font-size: var(--text-md); }
 .summary-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .summary-table { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
-.summary-table thead th { background: var(--blue-800); color: rgba(255,255,255,0.95); padding: 14px 16px; text-align: left; font-size: var(--text-sm); font-weight: var(--font-semibold); letter-spacing: 0.02em; }
+.summary-table thead th { background: #1f4699; color: rgba(255,255,255,0.95); padding: 14px 16px; text-align: left; font-size: var(--text-sm); font-weight: var(--font-semibold); letter-spacing: 0.02em; }
 .summary-table thead th:first-child { border-radius: var(--radius-lg) 0 0 0; }
 .summary-table thead th:last-child  { border-radius: 0 var(--radius-lg) 0 0; }
 .summary-table tbody tr { transition: background var(--t-fast); }
@@ -522,7 +516,7 @@ body {
    PUBLISHING CENTER
 ════════════════════════════════════════ */
 .pub-page { padding-top: var(--space-6); }
-.pub-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-6) var(--space-8); background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 60%, var(--blue-800) 100%); border-radius: var(--radius-xl); box-shadow: var(--shadow-blue); position: relative; overflow: hidden; border: 1px solid rgba(59,111,224,0.2); }
+.pub-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-6) var(--space-8); background: linear-gradient(135deg, #071633 0%, #0d2454 45%, #163d8f 100%); border-radius: var(--radius-xl); box-shadow: var(--shadow-blue); position: relative; overflow: hidden; border: 1px solid rgba(59,111,224,0.2); }
 .pub-hero::before { content: ''; position: absolute; top: -50px; right: -50px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(59,111,224,0.12) 0%, transparent 70%); pointer-events: none; }
 .pub-hero-main { flex: 1; position: relative; z-index: 1; }
 .pub-title    { font-size: var(--text-2xl); font-weight: var(--font-extrabold); color: #fff; letter-spacing: -0.04em; }
@@ -542,7 +536,7 @@ body {
 .pub-day-card    { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm); transition: all var(--t-base); }
 .pub-day-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
 .pub-day-weekend { border-color: var(--blue-200); background: linear-gradient(180deg, var(--blue-50) 0%, var(--bg-card) 100%); }
-.pub-day-header { padding: var(--space-3) var(--space-4); background: var(--blue-800); display: flex; flex-direction: column; }
+.pub-day-header { padding: var(--space-3) var(--space-4); background: #1f4699; display: flex; flex-direction: column; }
 .pub-day-name   { font-size: var(--text-base); font-weight: var(--font-bold); color: #fff; }
 .pub-day-date   { font-size: 10px; color: var(--blue-200); margin-top: 2px; }
 .pub-day-bar-wrap { padding: var(--space-3) var(--space-4) 0; display: flex; align-items: center; gap: var(--space-2); }
@@ -603,7 +597,7 @@ body {
    READ-ONLY VIEW PAGE
 ════════════════════════════════════════ */
 .view-page { min-height: 100vh; background: var(--bg-app); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
-.view-header { background: linear-gradient(135deg, var(--blue-950) 0%, var(--blue-900) 60%, var(--blue-800) 100%); border-bottom: 1px solid rgba(59,111,224,0.2); box-shadow: var(--shadow-blue-lg); position: sticky; top: 0; z-index: 50; }
+.view-header { background: linear-gradient(135deg, #071633 0%, #0d2454 45%, #163d8f 100%); border-bottom: 1px solid rgba(59,111,224,0.2); box-shadow: var(--shadow-blue-lg); position: sticky; top: 0; z-index: 50; }
 .view-header-inner { max-width: 1440px; margin: 0 auto; padding: var(--space-5) var(--space-10); display: flex; align-items: center; gap: var(--space-8); }
 .view-brand { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
 .view-brand-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-gradient); box-shadow: 0 0 10px rgba(59,111,224,0.6); }
@@ -622,10 +616,10 @@ body {
 .view-card       { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); }
 .view-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
 .view-table      { width: 100%; border-collapse: collapse; font-size: var(--text-base); }
-.view-table thead th { background: var(--blue-800); color: rgba(255,255,255,0.95); padding: 13px 14px; font-size: var(--text-sm); font-weight: var(--font-semibold); letter-spacing: 0.02em; text-align: left; position: sticky; top: 0; }
+.view-table thead th { background: #1f4699; color: rgba(255,255,255,0.95); padding: 13px 14px; font-size: var(--text-sm); font-weight: var(--font-semibold); letter-spacing: 0.02em; text-align: left; position: sticky; top: 0; }
 .view-th-eng   { min-width: 170px; } .view-th-shift { min-width: 90px; } .view-th-day { min-width: 120px; text-align: center !important; }
 .view-day-date { font-size: var(--text-xs); opacity: 0.75; margin-top: 3px; }
-.view-weekend-hdr  { background: var(--blue-950) !important; }
+.view-weekend-hdr  { background: #183b85 !important; }
 .view-row-even { background: var(--bg-card); } .view-row-odd { background: var(--blue-50); }
 .view-table tbody tr { transition: background var(--t-fast); }
 .view-table tbody tr:hover { background: var(--blue-100); }
@@ -747,462 +741,4 @@ body {
   .dash-stats { grid-template-columns: repeat(2, 1fr) !important; }
   .stat-num   { font-size: 1.3rem !important; }
   .pub-analytics-grid { grid-template-columns: repeat(2, 1fr) !important; }
-}
-
-/* ─────────────────────────────────────
-   APP BACKGROUND
-───────────────────────────────────── */
-:root {
-  --bg-app: #f6f8fc;
-  --bg-card: #fcfdff;
-}
-
-/* ─────────────────────────────────────
-   HERO SECTIONS
-───────────────────────────────────── */
-.dash-hero,
-.team-hero,
-.pub-hero {
-  background: linear-gradient(
-    135deg,
-    #163d8f 0%,
-    #1d4fb8 55%,
-    #3267d6 100%
-  ) !important;
-
-  border: 1px solid rgba(59, 111, 224, 0.18);
-  box-shadow:
-    0 10px 30px rgba(17, 52, 120, 0.18),
-    0 4px 10px rgba(17, 52, 120, 0.08);
-}
-
-/* softer glow overlays */
-.dash-hero::before,
-.team-hero::before,
-.pub-hero::before {
-  background: radial-gradient(
-    circle,
-    rgba(255,255,255,0.10) 0%,
-    transparent 70%
-  ) !important;
-}
-
-.dash-hero::after {
-  background: radial-gradient(
-    circle,
-    rgba(255,255,255,0.06) 0%,
-    transparent 70%
-  ) !important;
-}
-
-/* ─────────────────────────────────────
-   TABLE HEADERS
-───────────────────────────────────── */
-.roster-grid thead th,
-.col-eng-hdr,
-.col-day-hdr,
-.summary-table thead th,
-.team-table-header,
-.pub-day-header {
-  background: #183b85 !important;
-  color: rgba(255,255,255,0.96);
-}
-
-/* ─────────────────────────────────────
-   WEEKEND HEADER
-───────────────────────────────────── */
-.weekend-hdr {
-  background: #122f6b !important;
-}
-
-/* ─────────────────────────────────────
-   TOPBAR
-   Keep dark for hierarchy
-───────────────────────────────────── */
-.topbar {
-  background: linear-gradient(
-    135deg,
-    #050d24 0%,
-    #081534 60%,
-    #0d1f4f 100%
-  ) !important;
-}
-
-/* ─────────────────────────────────────
-   TAB NAV
-───────────────────────────────────── */
-.tabnav {
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #dbe7ff;
-}
-
-.tabnav-btn {
-  color: #5d7093;
-}
-
-.tabnav-btn:hover {
-  background: #eef4ff;
-  color: #1d4fb8;
-}
-
-.tabnav-btn.active {
-  color: #163d8f;
-  border-bottom-color: #3267d6;
-}
-
-/* ─────────────────────────────────────
-   PAGE CARDS
-───────────────────────────────────── */
-.page-card,
-.day-card,
-.pub-day-card,
-.pub-analytics-card,
-.pub-oncall-card,
-.status-legend {
-  background: #fcfdff;
-  border-color: #dbe5f5;
-}
-
-/* better depth */
-.page-card:hover,
-.day-card:hover,
-.pub-day-card:hover,
-.pub-analytics-card:hover {
-  box-shadow:
-    0 12px 28px rgba(15, 35, 80, 0.08),
-    0 2px 6px rgba(15, 35, 80, 0.05);
-}
-
-/* ─────────────────────────────────────
-   STAT CARDS INSIDE HERO
-───────────────────────────────────── */
-.stat-card {
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.14);
-  backdrop-filter: blur(10px);
-}
-
-.stat-card:hover {
-  background: rgba(255,255,255,0.16);
-  border-color: rgba(255,255,255,0.22);
-}
-
-/* ─────────────────────────────────────
-   ROSTER GRID ROWS
-───────────────────────────────────── */
-.row-even {
-  background: #ffffff;
-}
-
-.row-odd {
-  background: #f7faff;
-}
-
-.roster-grid tbody tr:hover {
-  background: #edf4ff;
-}
-
-/* ─────────────────────────────────────
-   WEEKEND CELLS
-───────────────────────────────────── */
-.weekend-cell {
-  background: #f4f7ff !important;
-}
-
-/* ─────────────────────────────────────
-   BUTTONS
-───────────────────────────────────── */
-.btn-primary,
-.pub-pdf-btn,
-.apply-confirm-btn,
-.done-btn,
-.btn-save-sm {
-  background: linear-gradient(
-    135deg,
-    #2152c9 0%,
-    #3267d6 100%
-  ) !important;
-
-  box-shadow:
-    0 6px 18px rgba(50, 103, 214, 0.22);
-}
-
-.btn-primary:hover,
-.pub-pdf-btn:hover,
-.apply-confirm-btn:hover,
-.done-btn:hover,
-.btn-save-sm:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 10px 24px rgba(50, 103, 214, 0.28);
-}
-
-/* ─────────────────────────────────────
-   INPUTS
-───────────────────────────────────── */
-.search-input,
-.form-input,
-.form-select,
-.week-label-input,
-.notes-input,
-.time-field select {
-  background: #ffffff;
-  border-color: #d7e2f3;
-}
-
-.search-input:focus,
-.form-input:focus,
-.form-select:focus,
-.week-label-input:focus,
-.notes-input:focus,
-.time-field select:focus {
-  border-color: #3267d6;
-  box-shadow: 0 0 0 4px rgba(50,103,214,0.12);
-}
-
-/* ─────────────────────────────────────
-   SCROLLBAR
-───────────────────────────────────── */
-::-webkit-scrollbar-thumb {
-  background: #4f79dc;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3267d6;
-}
-
-.week-picker,
-.tz-switcher {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.14);
-}
-
-.week-picker-btn:hover:not(:disabled),
-.tz-btn:hover:not(.active) {
-  background: rgba(255,255,255,0.16);
-}
-
-.tz-btn.active {
-  background: rgba(255,255,255,0.22);
-  backdrop-filter: blur(8px);
-}
-
-/* =========================================================
-   FINAL UI POLISH OVERRIDES
-   Paste at VERY BOTTOM of app.css
-   ========================================================= */
-
-/* ─────────────────────────────────────
-   SURFACES
-───────────────────────────────────── */
-
-:root {
-  --bg-app: #f6f8fc;
-  --bg-card: #fcfdff;
-}
-
-/* ─────────────────────────────────────
-   TOPBAR
-───────────────────────────────────── */
-
-.topbar {
-  background: linear-gradient(
-    135deg,
-    #071633 0%,
-    #0d2454 45%,
-    #163d8f 100%
-  ) !important;
-
-  box-shadow:
-    0 6px 24px rgba(7, 22, 51, 0.28) !important;
-}
-
-/* ─────────────────────────────────────
-   HEROES
-───────────────────────────────────── */
-
-.dash-hero,
-.team-hero,
-.pub-hero,
-.view-header {
-  background: linear-gradient(
-    135deg,
-    #2149a6 0%,
-    #2958c8 55%,
-    #4b79e6 100%
-  ) !important;
-}
-
-/* hero glow polish */
-
-.dash-hero::before,
-.team-hero::before,
-.pub-hero::before {
-  background: radial-gradient(
-    circle,
-    rgba(255,255,255,0.10) 0%,
-    transparent 70%
-  ) !important;
-}
-
-.dash-hero::after {
-  background: radial-gradient(
-    circle,
-    rgba(255,255,255,0.06) 0%,
-    transparent 70%
-  ) !important;
-}
-
-/* ─────────────────────────────────────
-   TABLE HEADERS
-───────────────────────────────────── */
-
-.roster-grid thead th,
-.col-eng-hdr,
-.col-day-hdr,
-.summary-table thead th,
-.team-table-header,
-.pub-day-header {
-  background: #1f4699 !important;
-}
-
-/* ─────────────────────────────────────
-   WEEKEND HEADERS
-───────────────────────────────────── */
-
-.weekend-hdr {
-  background: #183b85 !important;
-}
-
-/* ─────────────────────────────────────
-   WEEKEND CELLS
-───────────────────────────────────── */
-
-.weekend-cell {
-  background: rgba(222,233,255,0.45) !important;
-}
-
-/* ─────────────────────────────────────
-   CARDS
-───────────────────────────────────── */
-
-.page-card,
-.day-card,
-.pub-day-card,
-.pub-analytics-card,
-.pub-oncall-card,
-.status-legend {
-  background: #fcfdff;
-  border-color: #dbe5f5;
-}
-
-.page-card:hover,
-.day-card:hover,
-.pub-day-card:hover,
-.pub-analytics-card:hover {
-  box-shadow:
-    0 12px 28px rgba(15,35,80,0.08),
-    0 2px 6px rgba(15,35,80,0.05);
-}
-
-/* ─────────────────────────────────────
-   ROSTER ROWS
-───────────────────────────────────── */
-
-.row-even {
-  background: #ffffff;
-}
-
-.row-odd {
-  background: #f7faff;
-}
-
-.roster-grid tbody tr:hover {
-  background: #edf4ff;
-}
-
-/* ─────────────────────────────────────
-   BUTTONS
-───────────────────────────────────── */
-
-.btn-primary,
-.pub-pdf-btn,
-.apply-confirm-btn,
-.done-btn,
-.btn-save-sm {
-  background: linear-gradient(
-    135deg,
-    #2152c9 0%,
-    #3267d6 100%
-  ) !important;
-
-  box-shadow:
-    0 6px 18px rgba(50,103,214,0.22);
-}
-
-.btn-primary:hover,
-.pub-pdf-btn:hover,
-.apply-confirm-btn:hover,
-.done-btn:hover,
-.btn-save-sm:hover {
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 10px 24px rgba(50,103,214,0.28);
-}
-
-/* ─────────────────────────────────────
-   INPUTS
-───────────────────────────────────── */
-
-.search-input,
-.form-input,
-.form-select,
-.week-label-input,
-.notes-input,
-.time-field select {
-  background: #ffffff;
-  border-color: #d7e2f3;
-}
-
-.search-input:focus,
-.form-input:focus,
-.form-select:focus,
-.week-label-input:focus,
-.notes-input:focus,
-.time-field select:focus {
-  border-color: #3267d6;
-  box-shadow: 0 0 0 4px rgba(50,103,214,0.12);
-}
-
-/* ─────────────────────────────────────
-   TAB NAV
-───────────────────────────────────── */
-
-.tabnav {
-  background: rgba(255,255,255,0.96);
-  border-bottom: 1px solid #dbe7ff;
-}
-
-.tabnav-btn:hover {
-  background: #eef4ff;
-  color: #1d4fb8;
-}
-
-.tabnav-btn.active {
-  color: #163d8f;
-  border-bottom-color: #3267d6;
-}
-
-/* ─────────────────────────────────────
-   SCROLLBAR
-───────────────────────────────────── */
-
-::-webkit-scrollbar-thumb {
-  background: #4f79dc;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3267d6;
 }
