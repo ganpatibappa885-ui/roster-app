@@ -7,17 +7,17 @@
 
 :root {
   /* ── Fugetron Navy Palette ── */
-  --navy-950: #0d1f4a;
-  --navy-900: #162857;
-  --navy-800: #1c3272;
-  --navy-700: #243d8a;
-  --navy-600: #1e3fa0;
-  --navy-500: #2855c8;
-  --navy-400: #4f78f0;
-  --navy-300: #93b4fd;
-  --navy-200: #bfd0fe;
-  --navy-100: #dce8ff;
-  --navy-50:  #eef3ff;
+  --navy-950: #00004a;
+  --navy-900: #000060;
+  --navy-800: #000080;
+  --navy-700: #0000a0;
+  --navy-600: #0000c0;
+  --navy-500: #1a1ad4;
+  --navy-400: #4040e0;
+  --navy-300: #8080f0;
+  --navy-200: #b3b3f8; 
+  --navy-100: #d9d9fc;
+  --navy-50:  #ededfe;
 
   /* ── Alias old teal vars → navy (keeps all components working) ── */
   --teal-950: var(--navy-950);
